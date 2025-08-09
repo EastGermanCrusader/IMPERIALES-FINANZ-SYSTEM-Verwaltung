@@ -3,36 +3,28 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IMPERIALES FINANZ SYSTEM – Verwaltung</title>
+  <title>IMPERIALES FINANZ SYSTEM</title>
   <link rel="icon" href="log_imp.png" type="image/png" />
+
+  <!-- ========================= BLOCK: STYLES (CRT + UI) ========================= -->
   <style>
-    /* --- 80er Röhrenbildschirm (Schwarz/Weiß) Stil + CRT‑Effekte --- */
-    :root{
-      --bg:#000; --panel:#0d0d0d; --ink:#e6e6e6; --muted:#9a9a9a; --line:#2a2a2a; --ring:#3a3a3a;
-    }
+    :root{ --bg:#000; --panel:#0d0d0d; --ink:#e6e6e6; --muted:#9a9a9a; --line:#2a2a2a; --ring:#3a3a3a; }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; position:relative}
 
-    /* Scanlines (fein) */
+    /* CRT Scanlines */
     body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom, rgba(255,255,255,.035), rgba(255,255,255,.035) 1px, transparent 1px, transparent 3px);mix-blend-mode:overlay}
-    /* Rauschen/Static + wandernder Streifen */
+    /* CRT Static + Sweep */
     .fx-layer{position:fixed;inset:0;pointer-events:none;z-index:9990}
-    .fx-noise{background:
-      repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 2px),
-      repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
-      animation:noiseFlash 600ms steps(2,end) infinite}
+    .fx-noise{background:repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 2px), repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px); animation:noiseFlash 600ms steps(2,end) infinite}
     @keyframes noiseFlash{50%{opacity:.8}0%,100%{opacity:.95}}
-    .fx-sweep{background:linear-gradient(to bottom, transparent 0%, rgba(255,255,255,.08) 50%, transparent 100%);
-      height:15%; width:100%; position:fixed; left:0; top:-20%; mix-blend-mode:screen; z-index:9991;
-      animation:sweep 6s linear infinite}
+    .fx-sweep{background:linear-gradient(to bottom, transparent 0%, rgba(255,255,255,.08) 50%, transparent 100%); height:15%; width:100%; position:fixed; left:0; top:-20%; mix-blend-mode:screen; z-index:9991; animation:sweep 6s linear infinite}
     @keyframes sweep{0%{transform:translateY(-30vh)} 100%{transform:translateY(130vh)}}
-
-    /* leichtes Flackern der gesamten UI */
     @keyframes flicker{0%,100%{opacity:.98} 50%{opacity:.94}}
     .crt{animation:flicker 3s infinite}
 
-    /* UI */
+    /* UI Shell */
     .wrap{max-width:1100px;margin:0 auto;padding:20px}
     .brand{display:flex;align-items:center;gap:.6rem}
     .logo{width:20px;height:20px;filter:brightness(0) invert(1) contrast(1.05);opacity:.95}
@@ -49,8 +41,6 @@
     .input,select,textarea{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--ring);background:#0a0a0a;color:var(--ink);outline:none}
     .input:focus, select:focus, textarea:focus{box-shadow:0 0 0 2px rgba(255,255,255,.08)}
     .label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}
-    .muted{color:var(--muted)}
-    .right{margin-left:auto}
     .grid{display:grid;gap:12px}
     .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
     @media(max-width:900px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -63,58 +53,48 @@
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
     .tab{padding:6px 10px;border-radius:8px;border:1px solid var(--line);cursor:pointer}
     .tab.active{background:#101010;border-color:#777}
-    .tag{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:#0a0a0a}
-    .status-pending{color:#e6e6e6;opacity:.8}
-    .status-approved{color:#fff}
-    .status-rejected{color:#bbb}
     .topbar{display:flex;align-items:center;gap:12px;padding:10px 0}
     .sp{flex:1}
-    .footer{color:#777;font-size:12px;margin-top:24px;text-align:center}
-    .note{font-size:12px;color:var(--muted)}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#0a0a0a;border:1px solid var(--line)}
 
-    /* Datenlink Loader */
+    /* Currency + icons forced white */
+    .currency-icon{width:16px;height:16px;vertical-align:-3px;filter:brightness(0) invert(1) contrast(1.05);opacity:.95}
+    .cur{display:inline-flex;align-items:center;gap:6px}
+
+    /* Loader */
     .loader{position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:10000}
     .loader-inner{display:grid;gap:14px;place-items:center;color:#e8e8ea}
     .seal-img{width:92px;height:92px;filter:brightness(0) invert(1) contrast(1.05);opacity:.98}
-    .blink{animation:blink 1s infinite steps(2,end)}
-    @keyframes blink{50%{opacity:.3}}
     .progress{display:flex;gap:6px}
     .dot{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.25}
     .dot:nth-child(1){animation:d 1.2s infinite}
     .dot:nth-child(2){animation:d 1.2s .2s infinite}
     .dot:nth-child(3){animation:d 1.2s .4s infinite}
     @keyframes d{0%,100%{opacity:.25}50%{opacity:1}}
-
-    /* Währungssymbol als Bild (immer weiß) */
-    .currency-icon{width:16px;height:16px;vertical-align:-3px;filter:brightness(0) invert(1) contrast(1.05);opacity:.95}
-    .cur{display:inline-flex;align-items:center;gap:6px}
   </style>
 </head>
 <body class="crt">
   <!-- CRT FX Overlays -->
   <div class="fx-layer fx-noise"></div>
   <div class="fx-sweep"></div>
-  <!-- Datenlink Loader -->
+
+  <!-- ========================= BLOCK: LOADER ========================= -->
   <div id="loader" class="loader">
     <div class="loader-inner">
       <img src="log_imp.png" alt="Imperiales Siegel" class="seal-img" />
-      <div style="font-weight:800;letter-spacing:.08em">IMPERIALES DATENLINK‑GATE</div>
-      <div class="muted blink">Verbindung wird initialisiert …</div>
       <div class="progress"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
     </div>
   </div>
 
+  <!-- ========================= BLOCK: SHELL ========================= -->
   <div class="wrap" style="opacity:0;transition:opacity .4s" id="rootWrap">
     <div class="topbar">
-      <div class="brand"><img src="log_imp.png" class="logo" alt="Logo"/><div class="h1">IMPERIALES FINANZ SYSTEM</div><span class="tag">RP‑Tool</span></div>
+      <div class="brand"><img src="log_imp.png" class="logo" alt="Logo"/><div class="h1">IMPERIALES FINANZ SYSTEM</div></div>
       <div class="sp"></div>
       <button class="btn soft" id="btnLogout" style="display:none">Abmelden</button>
     </div>
 
+    <!-- ========================= BLOCK: LOGIN VIEW ========================= -->
     <div id="viewLogin" class="card pad" style="max-width:520px;margin:40px auto 0 auto;display:none">
-      <h2 style="margin:0 0 6px 0">Sicherheits‑Gate // ISB‑Auth</h2>
-      <div class="muted" style="margin-bottom:12px">Melde dich an (Admin richtet das System ein).</div>
       <div class="grid">
         <div>
           <label class="label">Benutzername</label>
@@ -122,30 +102,30 @@
         </div>
         <div>
           <label class="label">Passwort</label>
-          <input class="input" id="loginPass" type="password" placeholder="!#Imperium#!" />
+          <input class="input" id="loginPass" type="password" placeholder="••••••" />
         </div>
         <div class="row" style="align-items:center;gap:8px">
           <button class="btn" id="btnLogin">Anmelden</button>
-          <span class="note">Standard‑Zugang: <b>Admin01 / !#Imperium#!</b></span>
         </div>
       </div>
     </div>
 
+    <!-- ========================= BLOCK: APP ========================= -->
     <div id="app" style="display:none">
       <div class="row">
         <div class="col card pad">
           <div class="row" style="align-items:center">
-            <div class="pill"><strong id="roleBadge">Rolle</strong><span id="userBadge" class="muted"></span></div>
+            <div class="h1" id="roleBadge">Rolle</div><span id="userBadge"></span>
             <div class="sp"></div>
             <button class="btn ghost" id="btnExport">Export JSON</button>
             <label class="btn ghost" for="importFile">Import JSON</label>
             <input id="importFile" type="file" accept="application/json" style="display:none" />
           </div>
           <div class="stats" style="margin-top:12px">
-            <div class="stat"><h3>Gesamtbudget</h3><div class="v" id="statTotal"></div><div class="muted">Schatzkammer‑Fond</div></div>
-            <div class="stat"><h3>Zugewiesen</h3><div class="v" id="statAllocated"></div><div class="muted">Summe aller Abteilungen</div></div>
-            <div class="stat"><h3>Verfügbar</h3><div class="v" id="statAvailable"></div><div class="muted">Fond − Zuweisungen</div></div>
-            <div class="stat"><h3>Offene Anträge</h3><div class="v" id="statPending">0</div><div class="muted">ausstehende Entscheidungen</div></div>
+            <div class="stat"><h3>Gesamtbudget</h3><div class="v" id="statTotal"></div></div>
+            <div class="stat"><h3>Zugewiesen</h3><div class="v" id="statAllocated"></div></div>
+            <div class="stat"><h3>Verfügbar</h3><div class="v" id="statAvailable"></div></div>
+            <div class="stat"><h3>Offene Anträge</h3><div class="v" id="statPending">0</div></div>
           </div>
         </div>
       </div>
@@ -158,12 +138,10 @@
         <div class="tab" data-tab="settings">Einstellungen</div>
       </div>
 
-      <!-- Dashboard tab -->
+      <!-- ========================= BLOCK: TAB DASHBOARD ========================= -->
       <div id="tab-dashboard" class="card pad">
         <div class="row">
           <div class="col">
-            <h3 style="margin-top:0">Fond</h3>
-            <!-- Admin-Ansicht: Aufladen -->
             <div id="topupAdmin" class="grid" style="display:none">
               <div>
                 <label class="label">Betrag <img src="Credits.png" class="currency-icon" alt="Credits"/></label>
@@ -171,17 +149,15 @@
               </div>
               <div>
                 <label class="label">Verwendungszweck</label>
-                <input class="input" id="topupNote" placeholder="Steuereinnahmen, Tribut, etc." />
+                <input class="input" id="topupNote" placeholder="" />
               </div>
-              <div class="row"><button class="btn" id="btnTopup">Einzahlen</button><span class="note">Nur Admin</span></div>
+              <div class="row"><button class="btn" id="btnTopup">Einzahlen</button></div>
             </div>
-            <!-- Minister-Ansicht: Info -->
             <div id="topupInfo" class="grid" style="display:none">
-              <div class="note">Okay – es sind neue Einnahmen dazugekommen. Du kannst dein Budget verteilen. <span id="lastIncome"></span></div>
+              <div id="lastIncome" class="label"></div>
             </div>
           </div>
           <div class="col">
-            <h3 style="margin-top:0">Letzte Ereignisse</h3>
             <table id="auditTable">
               <thead><tr><th>Zeit</th><th>Aktion</th><th>Details</th></tr></thead>
               <tbody></tbody>
@@ -190,12 +166,12 @@
         </div>
       </div>
 
-      <!-- Departments tab -->
+      <!-- ========================= BLOCK: TAB DEPARTMENTS ========================= -->
       <div id="tab-deps" class="card pad" style="display:none">
         <div class="row" style="align-items:end">
           <div class="col">
             <label class="label">Abteilungsname</label>
-            <input class="input" id="depName" placeholder="Imperiale Marine" />
+            <input class="input" id="depName" placeholder="" />
           </div>
           <div class="col" style="max-width:200px">
             <label class="label">Code</label>
@@ -213,12 +189,12 @@
         </div>
       </div>
 
-      <!-- Requests tab -->
+      <!-- ========================= BLOCK: TAB REQUESTS ========================= -->
       <div id="tab-requests" class="card pad" style="display:none">
         <div class="row" style="align_items:end">
           <div class="col">
-            <label class="label">Titel des Antrags</label>
-            <input class="input" id="reqTitle" placeholder="MedCorps – Feldlazarett" />
+            <label class="label">Titel</label>
+            <input class="input" id="reqTitle" placeholder="" />
           </div>
           <div class="col">
             <label class="label">Abteilung</label>
@@ -231,14 +207,13 @@
         </div>
         <div class="row">
           <div class="col">
-            <label class="label">Begründung / Beschreibung</label>
-            <textarea class="input" id="reqDesc" rows="2" placeholder="Begründung, Positionen, Fristen…"></textarea>
+            <label class="label">Beschreibung</label>
+            <textarea class="input" id="reqDesc" rows="2" placeholder=""></textarea>
           </div>
           <div class="col" style="max-width:220px;display:flex;align-items:flex-end">
             <button class="btn" id="btnSubmitReq">Antrag erstellen</button>
           </div>
         </div>
-
         <div style="margin-top:14px">
           <table id="reqTable">
             <thead><tr><th>Zeit</th><th>Titel</th><th>Abteilung</th><th>Betrag</th><th>Status</th><th>Aktionen</th></tr></thead>
@@ -247,9 +222,8 @@
         </div>
       </div>
 
-      <!-- Users tab (Admin only) -->
+      <!-- ========================= BLOCK: TAB USERS (ADMIN) ========================= -->
       <div id="tab-users" class="card pad" style="display:none">
-        <h3 style="margin-top:0">Nutzerverwaltung (nur Admin)</h3>
         <div class="row" style="align-items:end">
           <div class="col">
             <label class="label">Benutzername</label>
@@ -281,18 +255,15 @@
         </div>
       </div>
 
-      <!-- Settings tab -->
+      <!-- ========================= BLOCK: TAB SETTINGS ========================= -->
       <div id="tab-settings" class="card pad" style="display:none">
-        <h3 style="margin-top:0">Nutzer & Sicherheit</h3>
         <div class="row">
           <div class="col" style="max-width:360px">
-            <label class="label">Neues Passwort (aktueller Nutzer)</label>
+            <label class="label">Neues Passwort</label>
             <input class="input" id="newPass" type="password" placeholder="••••••" />
             <div class="row" style="margin-top:8px"><button class="btn" id="btnChangePass">Passwort ändern</button></div>
           </div>
           <div class="col">
-            <div class="note">Speicher: <b>localStorage</b> (client‑seitig). Für echte Sicherheit: Backend/DB.
-              <br>Du kannst alles exportieren/importieren.</div>
             <div class="row" style="margin-top:12px;gap:8px">
               <button class="btn soft" id="btnReset">Alles zurücksetzen</button>
             </div>
@@ -300,89 +271,137 @@
         </div>
       </div>
 
-      <div class="footer">Imperiales Finanz System · Version 1.4 · CRT‑Monochrom + Bild‑Währung + Favicon</div>
     </div>
   </div>
 
-<script>
-// --------- Client-side finance tool for RP (no backend) ---------
-const LS_KEY = 'imperial_finance_v1_4';
-const byId = id => document.getElementById(id);
-const now = () => new Date().toISOString();
+  <!-- ========================= BLOCK: SCRIPT (MODULED) ========================= -->
+  <script>
+  // ===== BLOCK: CONSTANTS & HELPERS =====
+  const LS_KEY = 'imperial_finance_blocks_v1';
+  const byId = id => document.getElementById(id);
+  const now = () => new Date().toISOString();
+  const numDE = n => Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const curHTML = n => `<span class="cur"><img src="Credits.png" class="currency-icon" alt="Credits"/> ${numDE(n)}</span>`;
 
-// Formatierung: Zahl -> HTML mit Icon
-function numDE(n){return Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function curHTML(n){return `<span class="cur"><img src="Credits.png" class="currency-icon" alt="Credits"/> ${numDE(n)}</span>`}
+  // ===== BLOCK: STATE =====
+  const State = (()=>{
+    const initial = ()=>({
+      users:[{username:'Admin01', role:'Administrator', password:'!#Imperium#!', active:true}],
+      session:{user:null},
+      treasury:{fund:0, notes:[]},
+      departments:[],
+      requests:[],
+      audit:[{ts:now(), actor:'system', action:'init', details:'Fond=0, nur Admin'}]
+    });
+    let s = null;
+    const load = ()=>{ const raw = localStorage.getItem(LS_KEY); s = raw? JSON.parse(raw): initial(); };
+    const save = ()=> localStorage.setItem(LS_KEY, JSON.stringify(s));
+    const log = (actor,action,details)=>{ s.audit.unshift({ts:now(),actor,action,details}); if(s.audit.length>2000) s.audit.pop(); };
+    return { get:()=>s, set:v=>{s=v;}, load, save, log, initial };
+  })();
 
-// Initialdaten: NUR Admin, Fond = 0
-const initialState = () => ({
-  users: [ {username:'Admin01', role:'Administrator', password:'!#Imperium#!', active:true} ],
-  session: {user:null},
-  treasury: {fund: 0, notes: []},
-  departments: [],
-  requests: [],
-  audit: [{ts: now(), actor:'system', action:'init', details:'Default‑Daten geladen (nur Admin vorhanden, Fond=0)'}]
-});
+  // ===== BLOCK: AUTH =====
+  const Auth = (()=>{
+    const isAdmin = ()=> State.get().session.user?.role==='Administrator';
+    const isMinister = ()=> State.get().session.user?.role==='Finanzminister';
+    const login = (u,p)=>{
+      const s = State.get();
+      const f = s.users.find(x=>x.active && x.username===u && x.password===p);
+      if(!f) return false;
+      s.session.user = {username:f.username, role:f.role};
+      State.log(u,'login','ok'); State.save(); UI.renderAll();
+      return true;
+    };
+    const logout = ()=>{ const s=State.get(); if(s.session.user) State.log(s.session.user.username,'logout','bye'); s.session.user=null; State.save(); UI.showLogin(); };
+    return { isAdmin, isMinister, login, logout };
+  })();
 
-let state = null;
-function load(){ const raw = localStorage.getItem(LS_KEY); state = raw ? JSON.parse(raw) : initialState(); }
-function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-function log(actor, action, details){ state.audit.unshift({ts: now(), actor, action, details}); if(state.audit.length>2000) state.audit.pop(); }
+  // ===== BLOCK: COMPUTE =====
+  const Compute = (()=>{
+    const totalAllocated = ()=> State.get().departments.reduce((a,d)=>a+(d.budget||0),0);
+    const available = ()=> (State.get().treasury.fund||0) - totalAllocated();
+    const pendingCount = ()=> State.get().requests.filter(r=>r.status==='pending').length;
+    return { totalAllocated, available, pendingCount };
+  })();
 
-// ---- Loader ----
-function boot(){ const loader = byId('loader'); const wrap = byId('rootWrap'); setTimeout(()=>{ loader.style.display='none'; wrap.style.opacity=1; initUI(); }, 1000); }
+  // ===== BLOCK: UI RENDER =====
+  const UI = (()=>{
+    const showLogin = ()=>{ byId('app').style.display='none'; byId('viewLogin').style.display='block'; byId('btnLogout').style.display='none'; };
+    const showApp = ()=>{ byId('viewLogin').style.display='none'; byId('app').style.display='block'; byId('btnLogout').style.display='inline-block'; };
 
-// ---- Auth ----
-function showLogin(){ byId('app').style.display='none'; byId('viewLogin').style.display='block'; byId('btnLogout').style.display='none'; }
-function showApp(){ byId('viewLogin').style.display='none'; byId('app').style.display='block'; byId('btnLogout').style.display='inline-block'; }
-function tryLogin(){ const u=byId('loginUser').value.trim(); const p=byId('loginPass').value.trim(); const f=state.users.find(x=>x.active&&x.username===u&&x.password===p); if(f){ state.session.user={username:f.username, role:f.role}; log(u,'login','ok'); save(); renderAll(); } else alert('Abgewiesen – Zugangsdaten ungültig.'); }
-function logout(){ if(state.session.user){ log(state.session.user.username,'logout','bye'); } state.session.user=null; save(); showLogin(); }
+    function header(){
+      const s = State.get(); if(!s.session.user) return;
+      byId('roleBadge').textContent = s.session.user.role;
+      byId('userBadge').textContent = ' '+s.session.user.username;
+      byId('statTotal').innerHTML = curHTML(s.treasury.fund);
+      byId('statAllocated').innerHTML = curHTML(Compute.totalAllocated());
+      byId('statAvailable').innerHTML = curHTML(Compute.available());
+      byId('statPending').textContent = String(Compute.pendingCount());
+    }
+    function audit(){
+      const tbody = byId('auditTable').querySelector('tbody'); tbody.innerHTML='';
+      State.get().audit.slice(0,10).forEach(e=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${new Date(e.ts).toLocaleString('de-DE')}</td><td>${e.actor} – ${e.action}</td><td>${e.details||''}</td>`; tbody.appendChild(tr); });
+    }
+    function topup(){
+      const isA = Auth.isAdmin();
+      byId('topupAdmin').style.display = isA? 'grid':'none';
+      byId('topupInfo').style.display = isA? 'none':'grid';
+      if(!isA){ const last = State.get().treasury.notes[0]; byId('lastIncome').innerHTML = last? `Letzte Einnahme: ${curHTML(last.amount)} – ${last.note||''}` : ''; }
+    }
+    function deps(){
+      const s = State.get(); const body = byId('depTable').querySelector('tbody'); body.innerHTML='';
+      s.departments.forEach(dep=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><b>${dep.code}</b></td><td>${dep.name}</td><td>${curHTML(dep.budget)}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.allocPrompt('${dep.id}')">Zuweisen</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.editDepPrompt('${dep.id}')">Bearbeiten</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteDep('${dep.id}')">Löschen</button></div></td>`; body.appendChild(tr); });
+      const sel = byId('reqDept'); sel.innerHTML=''; s.departments.forEach(d=>{ const o=document.createElement('option'); o.value=d.id; o.textContent=`${d.name} (${d.code})`; sel.appendChild(o); });
+    }
+    function requests(){
+      const s = State.get(); const body = byId('reqTable').querySelector('tbody'); body.innerHTML='';
+      s.requests.forEach(r=>{ const dep=s.departments.find(d=>d.id===r.deptId); const tr=document.createElement('tr'); tr.innerHTML=`<td>${new Date(r.ts).toLocaleString('de-DE')}</td><td>${r.title}</td><td>${dep?dep.name:''}</td><td>${curHTML(r.amount)}</td><td>${r.status}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.approveReq('${r.id}')">OK</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.rejectReq('${r.id}')">X</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteReq('${r.id}')">DEL</button></div></td>`; body.appendChild(tr); });
+    }
+    function users(){
+      const body = byId('userTable')?.querySelector('tbody'); if(!body) return; body.innerHTML='';
+      State.get().users.forEach(u=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${u.username}</td><td>${u.role}</td><td>${u.active?'<span>aktiv</span>':'<span>deaktiviert</span>'}</td><td><div class="row" style="gap:6px"><button class="btn ghost" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.editUserPrompt('${u.username}')">Edit</button><button class="btn soft" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.toggleUser('${u.username}')">${u.active?'Off':'On'}</button><button class="btn bad" ${!Auth.isAdmin()||u.username==='Admin01'?'disabled':''} onclick="Actions.deleteUser('${u.username}')">DEL</button></div></td>`; body.appendChild(tr); });
+      document.querySelector('[data-tab="users"]').style.display = Auth.isAdmin()? 'inline-block':'none';
+    }
+    function renderAll(){ if(!State.get().session.user){ showLogin(); return; } showApp(); header(); topup(); audit(); deps(); requests(); users(); }
+    return { showLogin, showApp, renderAll };
+  })();
 
-// ---- Roles ----
-const isAdmin = () => state.session.user && state.session.user.role==='Administrator';
-const isMinister = () => state.session.user && state.session.user.role==='Finanzminister';
+  // ===== BLOCK: ACTIONS =====
+  const Actions = (()=>{
+    function bind(){
+      byId('btnLogin').onclick = ()=>{ if(!Auth.login(byId('loginUser').value.trim(), byId('loginPass').value.trim())) alert('Abgewiesen'); };
+      byId('btnLogout').onclick = Auth.logout;
+      byId('btnTopup') && (byId('btnTopup').onclick = ()=>{ if(!Auth.isAdmin()) return alert('Nur Admin'); const amt=parseFloat(byId('topupAmount').value||'0'); if(!(amt>0)) return alert('Betrag'); const note=byId('topupNote').value.trim(); const s=State.get(); s.treasury.fund+=amt; s.treasury.notes.unshift({ts:now(), amount:amt, note}); State.log(s.session.user.username,'fund_topup', amt+' // '+note); State.save(); UI.renderAll(); byId('topupAmount').value=''; byId('topupNote').value=''; });
+      byId('btnAddDep').onclick = ()=>{ if(!(Auth.isMinister()||Auth.isAdmin())) return alert('Nur Finanzminster/Admin'); const name=byId('depName').value.trim(); const code=byId('depCode').value.trim().toUpperCase(); if(!name||!code) return alert('Name/Code'); const s=State.get(); if(s.departments.some(d=>d.code===code)) return alert('Code vergeben'); s.departments.push({id:crypto.randomUUID(), name, code, budget:0}); State.log(s.session.user.username,'dep_create', code+' '+name); State.save(); UI.renderAll(); byId('depName').value=''; byId('depCode').value=''; };
+      byId('btnSubmitReq').onclick = ()=>{ const title=byId('reqTitle').value.trim(); const deptId=byId('reqDept').value; const amount=parseFloat((byId('reqAmount').value||'').replace(',','.')); const desc=byId('reqDesc').value.trim(); if(!title||!deptId||!(amount>0)) return alert('Felder'); const s=State.get(); s.requests.unshift({id:crypto.randomUUID(), ts:now(), title, deptId, amount, desc, status:'pending', createdBy: s.session.user.username}); State.log(s.session.user.username,'req_create', title+' '+amount); State.save(); UI.renderAll(); byId('reqTitle').value=''; byId('reqAmount').value=''; byId('reqDesc').value=''; };
+      byId('btnExport').onclick = ()=>{ const data=JSON.stringify(State.get(),null,2); const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data); a.download='imperiales_finanz_system_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); };
+      byId('importFile').addEventListener('change', ev=>{ const file=ev.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ try{ const obj=JSON.parse(reader.result); State.set(obj); State.save(); UI.renderAll(); alert('OK'); }catch(e){ alert('Fehler: '+e.message); } }; reader.readAsText(file); });
+      byId('btnChangePass').onclick=()=>{ const np=byId('newPass').value.trim(); if(!np) return; const s=State.get(); const u=s.users.find(x=>x.username===s.session.user.username); u.password=np; State.save(); byId('newPass').value=''; };
+      byId('btnReset').onclick=()=>{ if(!confirm('Zurücksetzen?')) return; localStorage.removeItem(LS_KEY); State.load(); State.save(); UI.renderAll(); };
+      Array.from(document.querySelectorAll('.tab')).forEach(t=>t.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const key=t.dataset.tab; ['dashboard','deps','requests','users','settings'].forEach(k=>{ const el=byId('tab-'+k); if(el) el.style.display=(k===key)?'block':'none'; }); });
+    }
 
-// ---- Stats helpers ----
-function totalAllocated(){ return state.departments.reduce((a,d)=>a+(d.budget||0),0); }
-function available(){ return (state.treasury.fund||0) - totalAllocated(); }
-function pendingCount(){ return state.requests.filter(r=>r.status==='pending').length; }
+    // Exposed inline handlers (kept minimal)
+    function deleteDep(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const dep=s.departments.find(d=>d.id===id); if(dep?.budget>0) return alert('Budget zuerst auf 0'); s.departments=s.departments.filter(d=>d.id!==id); State.log(s.session.user.username,'dep_delete',dep?dep.code:''); State.save(); UI.renderAll(); }
+    function editDepPrompt(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const dep=s.departments.find(d=>d.id===id); const name=prompt('Neuer Name',dep.name); if(name){ dep.name=name.trim(); State.save(); UI.renderAll(); State.log(s.session.user.username,'dep_rename',dep.code+'->'+name); } }
+    function allocPrompt(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const dep=s.departments.find(d=>d.id===id); const amtStr=prompt('Betrag (Credits), verfügbar: '+numDE(Compute.available()), '10000'); if(!amtStr) return; const amt=parseFloat(amtStr.replace(',','.')); if(!(amt>0)) return; if(amt>Compute.available()) return alert('Zu wenig Fond'); dep.budget+=amt; State.log(s.session.user.username,'alloc',dep.code+' +'+amt); State.save(); UI.renderAll(); }
+    function approveReq(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const r=s.requests.find(x=>x.id===id); if(!r||r.status!=='pending') return; if(r.amount>Compute.available()) return alert('Zu wenig Fond'); const dep=s.departments.find(d=>d.id===r.deptId); dep.budget+=r.amount; r.status='approved'; r.decidedBy=s.session.user.username; r.decidedAt=now(); State.log(s.session.user.username,'req_approve',r.title+' '+r.amount); State.save(); UI.renderAll(); }
+    function rejectReq(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const r=s.requests.find(x=>x.id===id); if(!r||r.status!=='pending') return; r.status='rejected'; r.decidedBy=s.session.user.username; r.decidedAt=now(); State.log(s.session.user.username,'req_reject',r.title); State.save(); UI.renderAll(); }
+    function deleteReq(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); s.requests=s.requests.filter(x=>x.id!==id); State.log(s.session.user.username,'req_delete',id); State.save(); UI.renderAll(); }
+    function editUserPrompt(username){ if(!Auth.isAdmin()) return; const s=State.get(); const u=s.users.find(x=>x.username===username); const newRole=prompt('Rolle',u.role); if(newRole){ u.role=newRole; } const newPass=prompt('Neues Passwort (leer=skip)',''); if(newPass){ u.password=newPass; } State.save(); UI.renderAll(); State.log(s.session.user.username,'user_edit',username); }
+    function toggleUser(username){ if(!Auth.isAdmin()) return; const s=State.get(); const u=s.users.find(x=>x.username===username); if(!u) return; u.active=!u.active; State.save(); UI.renderAll(); State.log(s.session.user.username,'user_toggle',username+' -> '+(u.active?'aktiv':'deaktiviert')); }
+    function deleteUser(username){ if(!Auth.isAdmin()) return; if(username==='Admin01') return alert('Admin01 geschützt'); const s=State.get(); s.users=s.users.filter(u=>u.username!==username); State.save(); UI.renderAll(); State.log(s.session.user.username,'user_delete',username); }
 
-// ---- Renderers ----
-function renderHeader(){ const u=state.session.user; if(!u) return; byId('roleBadge').textContent=u.role; byId('userBadge').textContent=' '+u.username; byId('statTotal').innerHTML=curHTML(state.treasury.fund); byId('statAllocated').innerHTML=curHTML(totalAllocated()); byId('statAvailable').innerHTML=curHTML(available()); byId('statPending').textContent=String(pendingCount()); }
-function renderAudit(){ const tbody=byId('auditTable').querySelector('tbody'); tbody.innerHTML=''; state.audit.slice(0,10).forEach(e=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${new Date(e.ts).toLocaleString('de-DE')}</td><td>${e.actor} – ${e.action}</td><td class="muted">${e.details||''}</td>`; tbody.appendChild(tr); }); }
-function renderTopupSection(){ const isA=isAdmin(); const adminBox=byId('topupAdmin'); const infoBox=byId('topupInfo'); adminBox.style.display=isA?'grid':'none'; infoBox.style.display=isA?'none':'grid'; if(!isA){ const last=state.treasury.notes[0]; const span=byId('lastIncome'); span.innerHTML = last ? `Letzte Einnahme: ${curHTML(last.amount)} – ${last.note||''}` : 'Noch keine Einnahmen verbucht.'; } }
-function renderDeps(){ const body=byId('depTable').querySelector('tbody'); body.innerHTML=''; state.departments.forEach(dep=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><b>${dep.code}</b></td><td>${dep.name}</td><td>${curHTML(dep.budget)}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(isMinister()||isAdmin())?'':'disabled'} onclick="allocPrompt('${dep.id}')">Budget zuweisen</button><button class="btn ghost" ${(isMinister()||isAdmin())?'':'disabled'} onclick="editDepPrompt('${dep.id}')">Bearbeiten</button><button class="btn bad" ${(isMinister()||isAdmin())?'':'disabled'} onclick="deleteDep('${dep.id}')">Löschen</button></div></td>`; body.appendChild(tr); }); const sel=byId('reqDept'); sel.innerHTML=''; state.departments.forEach(d=>{ const o=document.createElement('option'); o.value=d.id; o.textContent=`${d.name} (${d.code})`; sel.appendChild(o); }); }
-function renderRequests(){ const body=byId('reqTable').querySelector('tbody'); body.innerHTML=''; state.requests.forEach(r=>{ const dep=state.departments.find(d=>d.id===r.deptId); const stc=r.status==='pending'?'status-pending':(r.status==='approved'?'status-approved':'status-rejected'); const tr=document.createElement('tr'); tr.innerHTML=`<td>${new Date(r.ts).toLocaleString('de-DE')}</td><td>${r.title}</td><td>${dep?dep.name:''}</td><td>${curHTML(r.amount)}</td><td class="${stc}">${r.status}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(isMinister()||isAdmin())&&r.status==='pending'?'':'disabled'} onclick="approveReq('${r.id}')">Genehmigen</button><button class="btn ghost" ${(isMinister()||isAdmin())&&r.status==='pending'?'':'disabled'} onclick="rejectReq('${r.id}')">Ablehnen</button><button class="btn bad" ${(isMinister()||isAdmin())?'':'disabled'} onclick="deleteReq('${r.id}')">Löschen</button></div></td>`; body.appendChild(tr); }); }
-function renderUsers(){ const body=byId('userTable')?.querySelector('tbody'); if(!body) return; body.innerHTML=''; state.users.forEach(u=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${u.username}</td><td>${u.role}</td><td>${u.active?'<span class="tag">aktiv</span>':'<span class="tag">deaktiviert</span>'}</td><td><div class="row" style="gap:6px"><button class="btn ghost" ${!isAdmin()?'disabled':''} onclick="editUserPrompt('${u.username}')">Bearbeiten</button><button class="btn soft" ${!isAdmin()?'disabled':''} onclick="toggleUser('${u.username}')">${u.active?'Deaktivieren':'Aktivieren'}</button><button class="btn bad" ${!isAdmin()||u.username==='Admin01'?'disabled':''} onclick="deleteUser('${u.username}')">Löschen</button></div></td>`; body.appendChild(tr); }); }
-function renderAll(){ if(!state.session.user){ showLogin(); return; } showApp(); renderHeader(); renderTopupSection(); renderAudit(); renderDeps(); renderRequests(); renderUsers(); document.querySelector('[data-tab="users"]').style.display = isAdmin()? 'inline-block' : 'none'; }
+    return { bind, deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq, editUserPrompt, toggleUser, deleteUser };
+  })();
 
-function initUI(){
-  byId('btnLogin').onclick=tryLogin; byId('btnLogout').onclick=logout;
-  const topBtn=byId('btnTopup'); if(topBtn) topBtn.onclick=()=>{ if(!isAdmin()) return alert('Nur Admin darf den Fond aufladen.'); const amt=parseFloat(byId('topupAmount').value||'0'); if(!(amt>0)) return alert('Betrag eingeben.'); const note=byId('topupNote').value.trim(); state.treasury.fund+=amt; state.treasury.notes.unshift({ts:now(), amount:amt, note}); log(state.session.user.username,'fund_topup', amt+' // '+note); save(); renderAll(); byId('topupAmount').value=''; byId('topupNote').value=''; };
-  byId('btnAddDep').onclick=()=>{ if(!(isMinister()||isAdmin())) return alert('Nur Finanzminister oder Admin.'); const name=byId('depName').value.trim(); const code=byId('depCode').value.trim().toUpperCase(); if(!name||!code) return alert('Name & Code ausfüllen.'); if(state.departments.some(d=>d.code===code)) return alert('Code bereits vergeben.'); state.departments.push({id:crypto.randomUUID(), name, code, budget:0}); log(state.session.user.username,'dep_create', code+' '+name); save(); renderAll(); byId('depName').value=''; byId('depCode').value=''; };
-  byId('btnSubmitReq').onclick=()=>{ const title=byId('reqTitle').value.trim(); const deptId=byId('reqDept').value; const amount=parseFloat((byId('reqAmount').value||'').replace(',','.')); const desc=byId('reqDesc').value.trim(); if(!title||!deptId||!(amount>0)) return alert('Titel, Abteilung, Betrag ausfüllen.'); state.requests.unshift({id:crypto.randomUUID(), ts:now(), title, deptId, amount, desc, status:'pending', createdBy: state.session.user.username}); log(state.session.user.username,'req_create', title+' '+amount); save(); renderAll(); byId('reqTitle').value=''; byId('reqAmount').value=''; byId('reqDesc').value=''; };
-  byId('btnExport').onclick=()=>{ const data=JSON.stringify(state,null,2); const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data); a.download='imperiales_finanz_system_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); };
-  byId('importFile').addEventListener('change', ev=>{ const file=ev.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ try{ const obj=JSON.parse(reader.result); state=obj; save(); renderAll(); alert('Import erfolgreich.'); }catch(e){ alert('Import fehlgeschlagen: '+e.message); } }; reader.readAsText(file); });
-  Array.from(document.querySelectorAll('.tab')).forEach(t=>t.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const key=t.dataset.tab; ['dashboard','deps','requests','users','settings'].forEach(k=>{ const el=byId('tab-'+k); if(el) el.style.display=(k===key)?'block':'none'; }); });
-  byId('btnChangePass').onclick=()=>{ const np=byId('newPass').value.trim(); if(!np) return alert('Neues Passwort eingeben.'); const u=state.users.find(x=>x.username===state.session.user.username); u.password=np; save(); byId('newPass').value=''; alert('Passwort aktualisiert.'); };
-  byId('btnReset').onclick=()=>{ if(!confirm('Alle Daten (localStorage) wirklich löschen und neu starten?')) return; localStorage.removeItem(LS_KEY); load(); save(); renderAll(); };
-  load(); if(state.session.user){ showApp(); } else { showLogin(); } renderAll();
-}
-
-// ---- Globals for inline handlers ----
-function deleteDep(id){ if(!(isMinister()||isAdmin())) return alert('Nur Finanzminister oder Admin.'); if(!confirm('Abteilung wirklich löschen?')) return; const dep=state.departments.find(d=>d.id===id); if(dep&&dep.budget>0) return alert('Abteilung hat Budget – zuerst zurücksetzen.'); state.departments=state.departments.filter(d=>d.id!==id); log(state.session.user.username,'dep_delete', dep?dep.code:''); save(); renderAll(); }
-function editDepPrompt(id){ if(!(isMinister()||isAdmin())) return alert('Nur Finanzminister oder Admin.'); const dep=state.departments.find(d=>d.id===id); const name=prompt('Neuer Name für '+dep.code, dep.name); if(name){ dep.name=name.trim(); save(); renderAll(); log(state.session.user.username,'dep_rename',dep.code+' -> '+name); } }
-function allocPrompt(id){ if(!(isMinister()||isAdmin())) return alert('Nur Finanzminister oder Admin.'); const dep=state.departments.find(d=>d.id===id); const amtStr=prompt('Betrag (Credits) für '+dep.code+' zuweisen. Verfügbar: '+numDE(available()), '10000'); if(!amtStr) return; const amt=parseFloat(amtStr.replace(',','.')); if(!(amt>0)) return alert('Ungültiger Betrag.'); if(amt>available()) return alert('Nicht genügend Mittel im Fond.'); dep.budget+=amt; log(state.session.user.username,'alloc', dep.code+' +'+amt); save(); renderAll(); }
-function approveReq(id){ if(!(isMinister()||isAdmin())) return alert('Nur Finanzminister oder Admin.'); const r=state.requests.find(x=>x.id===id); if(!r||r.status!=='pending') return; if(r.amount>available()) return alert('Nicht genügend Mittel im Fond.'); const dep=state.departments.find(d=>d.id===r.deptId); dep.budget+=r.amount; r.status='approved'; r.decidedBy=state.session.user.username; r.decidedAt=now(); log(state.session.user.username,'req_approve', r.title+' '+r.amount); save(); renderAll(); }
-function rejectReq(id){ if(!(isMinister()||isAdmin())) return alert('Nur Finanzminister oder Admin.'); const r=state.requests.find(x=>x.id===id); if(!r||r.status!=='pending') return; r.status='rejected'; r.decidedBy=state.session.user.username; r.decidedAt=now(); log(state.session.user.username,'req_reject', r.title); save(); renderAll(); }
-function deleteReq(id){ if(!(isMinister()||isAdmin())) return alert('Nur Finanzminister oder Admin.'); state.requests=state.requests.filter(x=>x.id!==id); log(state.session.user.username,'req_delete', id); save(); renderAll(); }
-function editUserPrompt(username){ if(!isAdmin()) return; const u=state.users.find(x=>x.username===username); const newRole=prompt('Neue Rolle für '+username+' (Administrator/Finanzminister/Prüfer/Gouverneur/Schreiber):', u.role); if(newRole){ u.role=newRole; } const newPass=prompt('Neues Passwort (leer = unverändert):',''); if(newPass){ u.password=newPass; } save(); renderUsers(); log(state.session.user.username,'user_edit',username); }
-function toggleUser(username){ if(!isAdmin()) return; const u=state.users.find(x=>x.username===username); if(!u) return; u.active=!u.active; save(); renderUsers(); log(state.session.user.username,'user_toggle',username+' -> '+(u.active?'aktiv':'deaktiviert')); }
-function deleteUser(username){ if(!isAdmin()) return; if(username==='Admin01') return alert('Admin01 kann nicht gelöscht werden.'); if(!confirm('Nutzer wirklich löschen?')) return; state.users=state.users.filter(u=>u.username!==username); save(); renderUsers(); log(state.session.user.username,'user_delete',username); }
-
-// Kick off loader
-load();
-boot();
-</script>
+  // ===== BLOCK: BOOT =====
+  (function Boot(){
+    // loader fade
+    const loader = byId('loader'); const wrap = byId('rootWrap');
+    State.load();
+    setTimeout(()=>{ loader.style.display='none'; wrap.style.opacity=1; Actions.bind(); if(State.get().session.user){ UI.showApp(); } else { UI.showLogin(); } UI.renderAll(); }, 900);
+  })();
+  </script>
 </body>
 </html>

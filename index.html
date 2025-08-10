@@ -98,11 +98,11 @@
       <div class="grid">
         <div>
           <label class="label">Benutzername</label>
-          <input class="input" id="loginUser" placeholder="Admin01" />
+          <input class="input" id="loginUser" />
         </div>
         <div>
           <label class="label">Passwort</label>
-          <input class="input" id="loginPass" type="password" placeholder="••••••" />
+          <input class="input" id="loginPass" type="password" />
         </div>
         <div class="row" style="align-items:center;gap:8px">
           <button class="btn" id="btnLogin">Anmelden</button>
@@ -286,7 +286,7 @@
   // ===== BLOCK: STATE =====
   const State = (()=>{
     const initial = ()=>({
-      users:[{username:'Admin01', role:'Administrator', password:'!#Imperium#!', active:true}],
+      users:[{username:'Admin01', role:'Administrator', password:'Admin1234', active:true}],
       session:{user:null},
       treasury:{fund:0, notes:[]},
       departments:[],

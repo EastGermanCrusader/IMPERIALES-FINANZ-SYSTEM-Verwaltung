@@ -470,6 +470,41 @@ var Actions = (() => {
 // WICHTIG: für Inline-Handler verfügbar machen
 window.Actions = Actions;
 
+// ===== BLOCK: BOOT =====
+(function Boot(){
+  const loader = byId('loader');
+  const wrap   = byId('rootWrap');
+
+  function finish(){
+    if (loader) loader.style.display = 'none';
+    if (wrap)   wrap.style.opacity   = 1;
+  }
+
+  try {
+    State.load();
+  } catch (e) {
+    console.error('State load error:', e);
+  }
+
+  window.addEventListener('load', () => {
+    try {
+      Actions.bind?.();
+      if (State.get().session.user) {
+        UI.showApp();
+      } else {
+        UI.showLogin();
+      }
+      UI.renderAll?.();
+    } catch (e) {
+      console.error('Init error:', e);
+    } finally {
+      finish(); // Loader sicher beenden
+    }
+  });
+
+  // Failsafe: falls load nie feuert oder ein Fehler blockiert
+  setTimeout(finish, 3000);
+})();
 
 
   </script>

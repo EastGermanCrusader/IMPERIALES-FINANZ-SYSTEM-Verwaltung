@@ -78,6 +78,13 @@
     .currency-icon{width:16px;height:16px;vertical-align:-3px;filter:brightness(0) invert(1) contrast(1.05);opacity:.95}
     .cur{display:inline-flex;align-items:center;gap:6px}
 
+    /* --- Charts --- */
+    .chart-wrap{display:grid;gap:12px}
+    .chart-card{background:#0a0a0a;border:1px solid var(--line);border-radius:10px;padding:12px}
+    .chart-title{font-size:12px;letter-spacing:.08em;color:#cfcfcf;margin:0 0 6px}
+    canvas.chart{width:100%;height:180px;display:block}
+    .small{font-size:12px;color:#c8c8c8}
+
     /* Loader */
     .loader{position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:10000}
     .loader-inner{display:grid;gap:14px;place-items:center;color:#e8e8ea}
@@ -174,27 +181,49 @@
       <!-- ========================= BLOCK: TAB DASHBOARD ========================= -->
       <div id="tab-dashboard" class="card pad">
         <div class="row">
+          <!-- Linke Seite: Finanz-Infos -->
           <div class="col">
-            <div id="topupAdmin" class="grid" style="display:none">
-              <div>
-                <label class="label">Betrag <img src="Credits.png" class="currency-icon" alt="Credits"/></label>
-                <input class="input" id="topupAmount" type="number" min="0" step="0.01" />
+            <div id="finInfo" class="chart-wrap" style="display:none">
+              <div class="chart-card">
+                <h4 class="chart-title">Budget-Verteilung nach Abteilung</h4>
+                <canvas id="chartAlloc" class="chart"></canvas>
+                <div class="small" id="allocLegend"></div>
               </div>
-              <div>
-                <label class="label">Verwendungszweck</label>
-                <input class="input" id="topupNote" />
+              <div class="chart-card">
+                <h4 class="chart-title">Trend & Prognose (Fond)</h4>
+                <canvas id="chartTrend" class="chart"></canvas>
+                <div class="small" id="forecastText"></div>
               </div>
-              <div class="row"><button class="btn" id="btnTopup">Einzahlen</button></div>
-            </div>
-            <div id="topupInfo" class="grid" style="display:none">
-              <div id="lastIncome" class="label"></div>
+              <div id="auditorPane" class="chart-card" style="display:none">
+                <h4 class="chart-title">Transparenz – Letzte Einnahmen & Zuweisungen</h4>
+                <div class="row">
+                  <div class="col">
+                    <div class="small">Einnahmen (Top-Ups)</div>
+                    <table style="width:100%">
+                      <thead><tr><th class="small">Zeit</th><th class="small">Betrag</th><th class="small">Notiz</th></tr></thead>
+                      <tbody id="incTable"></tbody>
+                    </table>
+                  </div>
+                  <div class="col">
+                    <div class="small">Ausgaben (Zuweisungen)</div>
+                    <table style="width:100%">
+                      <thead><tr><th class="small">Zeit</th><th class="small">Abt.</th><th class="small">Betrag</th></tr></thead>
+                      <tbody id="expTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- Rechte Seite: Logs (nur Admin & Prüfer) -->
           <div class="col">
-            <table id="auditTable">
-              <thead><tr><th>Zeit</th><th>Aktion</th><th>Details</th></tr></thead>
-              <tbody></tbody>
-            </table>
+            <div id="auditCard">
+              <table id="auditTable">
+                <thead><tr><th>Zeit</th><th>Aktion</th><th>Details</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -316,6 +345,52 @@
   const numDE = n => Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
   const curHTML = n => `<span class="cur"><img src="Credits.png" class="currency-icon" alt="Credits"/> ${numDE(n)}</span>`;
 
+  // --- simple monochrome Charts (ohne Lib) ---
+  function drawPie(canvas, entries){
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    canvas.width = W*dpr; canvas.height = H*dpr; ctx.scale(dpr,dpr);
+    ctx.clearRect(0,0,W,H);
+    const total = entries.reduce((a,e)=>a+e.value,0)||1;
+    const cx=W/2, cy=H/2, r=Math.min(W,H)*0.38;
+    let a0 = -Math.PI/2, i=0;
+    entries.forEach(e=>{
+      const a1 = a0 + (e.value/total)*Math.PI*2;
+      const g = Math.round(220 - (i*160/Math.max(1,entries.length-1)));
+      ctx.fillStyle = `rgb(${g},${g},${g})`;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,a0,a1); ctx.closePath(); ctx.fill();
+      a0 = a1; i++;
+    });
+    ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+  }
+  function drawLine(canvas, points){
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    canvas.width = W*dpr; canvas.height = H*dpr; ctx.scale(dpr,dpr);
+    ctx.clearRect(0,0,W,H);
+    if(points.length<2) return;
+    const ys = points.map(p=>p.y); const yMin=Math.min(...ys), yMax=Math.max(...ys);
+    const pad=12;
+    ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=2;
+    ctx.beginPath();
+    points.forEach((p,i)=>{
+      const x = pad + p.x*(W-pad*2);
+      const y = H-pad - ((p.y - yMin)/(yMax - yMin || 1))*(H-pad*2);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    if(points.forecastY!==undefined){
+      const last = points[points.length-1];
+      const x1 = pad + last.x*(W-pad*2);
+      const y1 = H-pad - ((last.y - yMin)/(yMax - yMin || 1))*(H-pad*2);
+      const x2 = pad + 1*(W-pad*2);
+      const y2 = H-pad - ((points.forecastY - yMin)/(yMax - yMin || 1))*(H-pad*2);
+      ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
   // passwort → SHA-256 Hex
   async function sha256Hex(text){
     const enc = new TextEncoder().encode(text);
@@ -356,9 +431,7 @@
       State.log(u,'login','ok'); State.save(); UI.renderAll();
       return true;
     };
-
     const logout = ()=>{ const s=State.get(); if(s.session.user) State.log(s.session.user.username,'logout','bye'); s.session.user=null; State.save(); UI.showLogin(); };
-
     const createInitialAdmin = async (username, pass)=>{
       const s=State.get();
       if((s.users||[]).length>0) return false;
@@ -368,9 +441,18 @@
       State.save();
       return true;
     };
-
     return { isAdmin, isMinister, needsSetup, login, logout, createInitialAdmin };
   })();
+
+  // ===== BLOCK: ROLE HELPERS =====
+  const Role = {
+    isAdmin: () => Auth.isAdmin(),
+    isMinister: () => Auth.isMinister(),
+    isGovernor: () => State.get().session.user?.role === 'Gouverneur',
+    isAuditor: () => State.get().session.user?.role === 'Prüfer'
+  };
+  const canSeeFinInfo = () => Role.isMinister() || Role.isGovernor() || Role.isAuditor() || Role.isAdmin();
+  const canSeeLogs    = () => Role.isAuditor() || Role.isAdmin();
 
   // ===== BLOCK: COMPUTE =====
   const Compute = (()=>{
@@ -397,6 +479,9 @@
     }
 
     function audit(){
+      const card = byId('auditCard');
+      if(!canSeeLogs()){ if(card) card.style.display='none'; return; }
+      if(card) card.style.display='block';
       const tbody = byId('auditTable').querySelector('tbody'); tbody.innerHTML='';
       State.get().audit.slice(0,10).forEach(e=>{
         const tr=document.createElement('tr');
@@ -412,6 +497,66 @@
       if(!isA){
         const last = State.get().treasury.notes[0];
         byId('lastIncome').innerHTML = last? `Letzte Einnahme: ${curHTML(last.amount)} – ${last.note||''}` : '';
+      }
+    }
+
+    function finInfo(){
+      const s = State.get();
+      const wrap = byId('finInfo');
+      if(!canSeeFinInfo()){ if(wrap) wrap.style.display='none'; return; }
+      wrap.style.display='grid';
+
+      // Pie: Budget-Verteilung
+      const entries = s.departments.map(d=>({label:`${d.name} (${d.code})`, value: d.budget||0}));
+      const total = entries.reduce((a,e)=>a+e.value,0);
+      drawPie(byId('chartAlloc'), entries);
+      byId('allocLegend').textContent = total>0
+        ? entries.map(e=>`${e.label}: ${numDE(e.value)} (${((e.value/total)*100||0).toFixed(1)}%)`).join(' • ')
+        : 'Noch keine Zuweisungen.';
+
+      // Trend & Prognose (einfacher Forecast)
+      const events = [];
+      s.audit.slice().reverse().forEach(a=>{
+        if(a.action==='fund_topup'){
+          const amt=parseFloat(String(a.details).split(' // ')[0])||0;
+          events.push({ts:a.ts, delta:+amt});
+        }
+        if(a.action==='alloc' || a.action==='req_approve'){
+          const m = String(a.details).match(/(\d+(\.\d+)?)/);
+          const amt = m? parseFloat(m[1]) : NaN;
+          if(!isNaN(amt)) events.push({ts:a.ts, delta:-amt});
+        }
+      });
+      events.sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+      let v = s.treasury.fund - events.reduce((acc,e)=>acc+e.delta,0);
+      const pts = events.slice(-12).map((e,i)=>{ v += e.delta; return {x:i/Math.max(1,Math.min(11,events.length-1)), y:v}; });
+      if(pts.length<2){ pts.push({x:0,y:s.treasury.fund},{x:1,y:s.treasury.fund}); }
+      const last3 = events.slice(-3).map(e=>e.delta);
+      const avg = last3.length? last3.reduce((a,b)=>a+b,0)/last3.length : 0;
+      const forecast = (pts[pts.length-1]?.y||0) + avg;
+      pts.forecastY = forecast;
+      drawLine(byId('chartTrend'), pts);
+      byId('forecastText').textContent = `Prognose nächster Schritt: ${numDE(forecast)} Cr`;
+
+      // Prüfer/Admin: Einnahmen/Ausgabenlisten
+      const auditorPane = byId('auditorPane');
+      auditorPane.style.display = (Role.isAuditor() || Role.isAdmin()) ? 'block' : 'none';
+      if(auditorPane.style.display==='block'){
+        const incBody = byId('incTable');  incBody.innerHTML='';
+        const expBody = byId('expTable');  expBody.innerHTML='';
+        s.treasury.notes.slice(0,8).forEach(n=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td class="small">${new Date(n.ts).toLocaleString('de-DE')}</td><td class="small">${numDE(n.amount)}</td><td class="small">${n.note||''}</td>`;
+          incBody.appendChild(tr);
+        });
+        s.audit.filter(a=>a.action==='alloc' || a.action==='req_approve').slice(0,8).forEach(a=>{
+          const dep = s.departments.find(d=>a.details?.includes(d.code));
+          const m   = String(a.details).match(/(\d+(\.\d+)?)/);
+          const amt = m? numDE(parseFloat(m[1])):'';
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td class="small">${new Date(a.ts).toLocaleString('de-DE')}</td><td class="small">${dep?dep.code:''}</td><td class="small">${amt}</td>`;
+          expBody.appendChild(tr);
+        });
       }
     }
 
@@ -472,23 +617,26 @@
             <div class="row" style="gap:6px">
               <button class="btn ghost" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.editUserPrompt('${u.username}')">Edit</button>
               <button class="btn soft"  ${!Auth.isAdmin()?'disabled':''} onclick="Actions.toggleUser('${u.username}')">${u.active?'Off':'On'}</button>
-              <button class="btn bad"   ${!Auth.isAdmin()||u.username==='Admin01'?'disabled':''} onclick="Actions.deleteUser('${u.username}')">DEL</button>
+              <button class="btn bad"   ${!Auth.isAdmin()?'disabled':''} onclick="Actions.deleteUser('${u.username}')">DEL</button>
             </div>
           </td>`;
         body.appendChild(tr);
       });
-      // Sichtbarkeit der Admin-Tabs
-      const usersTab = document.querySelector('[data-tab="users"]');
-      if (usersTab) usersTab.style.display = Auth.isAdmin()? 'inline-block':'none';
-      const settingsTab = document.querySelector('[data-tab="settings"]');
-      if (settingsTab) settingsTab.style.display = Auth.isAdmin()? 'inline-block':'none';
-      if (!Auth.isAdmin()) { const sv=byId('tab-settings'); if (sv) sv.style.display='none'; }
     }
 
     function renderAll(){
       if (Auth.needsSetup()) { showSetup(); return; }
       if(!State.get().session.user){ showLogin(); return; }
-      showApp(); header(); topup(); audit(); deps(); requests(); users();
+      showApp(); header(); topup(); finInfo(); audit(); deps(); requests(); users();
+
+      // Tabsichtbarkeit: Users + Settings nur Admin
+      const usersTab = document.querySelector('[data-tab="users"]');
+      if (usersTab) usersTab.style.display = Auth.isAdmin()? 'inline-block':'none';
+      const settingsTab = document.querySelector('[data-tab="settings"]');
+      if (settingsTab) settingsTab.style.display = Auth.isAdmin()? 'inline-block':'none';
+      if (!Auth.isAdmin()) { const sv=byId('tab-settings'); if (sv) sv.style.display='none'; }
+      // Logs-Card falls nicht erlaubt
+      if (!canSeeLogs()) { const ac=byId('auditCard'); if(ac) ac.style.display='none'; }
     }
 
     return { showSetup, showLogin, showApp, renderAll };
@@ -616,10 +764,12 @@
         };
       }
 
-      // Reset
+      // Reset (nur Admin)
       const btnReset = byId('btnReset');
       if (btnReset) {
+        btnReset.style.display = Auth.isAdmin() ? 'inline-block' : 'none';
         btnReset.onclick = () => {
+          if (!Auth.isAdmin()) return alert('Nur Admin');
           if (!confirm('Zurücksetzen?')) return;
           localStorage.removeItem(LS_KEY);
           State.load(); State.save(); UI.renderAll();
@@ -631,7 +781,6 @@
         t.onclick = () => {
           const key = t.dataset.tab;
           if ((key === 'users' || key === 'settings') && !Auth.isAdmin()) return;
-
           document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
           t.classList.add('active');
           ['dashboard','deps','requests','users','settings'].forEach(k => {
@@ -725,7 +874,6 @@
       const s=State.get();
       const u=s.users.find(x=>x.username===username);
       if(!u) return;
-      if(u.username==='Admin01') {/* historisch geschützt, falls so benannt */ }
       u.active=!u.active;
       State.save(); UI.renderAll();
       State.log(s.session.user.username,'user_toggle',username+' -> '+(u.active?'aktiv':'deaktiviert'));

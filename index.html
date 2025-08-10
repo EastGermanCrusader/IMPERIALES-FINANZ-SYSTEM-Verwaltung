@@ -92,18 +92,41 @@ body::after {
   50% { opacity: 0; }
 }
 .hidden { display: none; }
+
+/* LOGIN STYLES */
+#loginView {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+#loginView h1 {
+  margin-bottom: 20px;
+  font-size: 2rem;
+}
+#loginView input {
+  margin: 5px 0;
+  padding: 8px;
+  width: 200px;
+}
+#loginView button {
+  margin-top: 10px;
+  padding: 8px 16px;
+}
 </style>
 </head>
 <body>
 
 <!-- ===== LOADER ===== -->
 <div id="loader">
-  <img src="credits.png" alt="Credits" style="width:60px;">
+  <img id="loaderImg" src="log_imp.png" alt="Imperial Logo" style="width:60px;">
   <p>Lade Imperiales Finanz System...</p>
 </div>
 
 <!-- ===== LOGIN ===== -->
-<div id="loginView" class="">
+<div id="loginView" class="hidden">
   <h1>Imperiales Finanz System</h1>
   <p>Login</p>
   <input id="loginUser" placeholder="Benutzername"><br><br>
@@ -139,7 +162,7 @@ function logAction(action, details) {
   });
 }
 function curHTML(amount) {
-  return `<img src="credits.png" style="width:14px;vertical-align:middle;"> ${amount}`;
+  return `<img src="log_imp.png" style="width:14px;vertical-align:middle;" onerror="this.style.display='none'"> ${amount}`;
 }
 
 /* ===== LOGIN ===== */
@@ -314,8 +337,31 @@ function logout(){
 }
 
 /* ===== LOADER HIDE ===== */
-window.onload = ()=>{
-  setTimeout(()=>{ document.getElementById("loader").classList.add("hidden"); },1500);
+function hideLoader() {
+  document.getElementById("loader").classList.add("hidden");
+  document.getElementById("loginView").classList.remove("hidden");
+}
+
+window.onload = () => {
+  // Versuche das Bild zu laden, aber verstecke den Loader in jedem Fall nach 2 Sekunden
+  let img = document.getElementById("loaderImg");
+  let loaderTimeout = setTimeout(hideLoader, 2000);
+  
+  img.onload = () => {
+    clearTimeout(loaderTimeout);
+    setTimeout(hideLoader, 1500);
+  };
+  
+  img.onerror = () => {
+    clearTimeout(loaderTimeout);
+    setTimeout(hideLoader, 1500);
+  };
+  
+  // Falls das Bild bereits im Cache ist
+  if (img.complete) {
+    clearTimeout(loaderTimeout);
+    setTimeout(hideLoader, 1500);
+  }
 };
 </script>
 </body>

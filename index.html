@@ -422,181 +422,54 @@ const UI = (() => {
     
 
   // ===== BLOCK: ACTIONS =====
-const Actions = (() => {
-  function bind() {
-    // Login / Logout
-    byId('btnLogin').onclick  = () => {
-      if (!Auth.login(byId('loginUser').value.trim(), byId('loginPass').value.trim())) {
-        alert('Abgewiesen');
-      }
-    };
-    byId('btnLogout').onclick = Auth.logout;
+var Actions = (() => {
+  function bind(){ /* ... dein bestehender bind() bleibt unverändert ... */ }
 
-    // Admin: Fond aufladen
-    const btnTop = byId('btnTopup');
-    if (btnTop) {
-      btnTop.onclick = () => {
-        if (!Auth.isAdmin()) return alert('Nur Admin');
-        const amt  = parseFloat(byId('topupAmount').value || '0');
-        if (!(amt > 0)) return alert('Betrag');
-        const note = byId('topupNote').value.trim();
-        const s = State.get();
-        s.treasury.fund += amt;
-        s.treasury.notes.unshift({ ts: now(), amount: amt, note });
-        State.log(s.session.user.username, 'fund_topup', amt + ' // ' + note);
-        State.save(); UI.renderAll();
-        byId('topupAmount').value = '';
-        byId('topupNote').value   = '';
-      };
-    }
-
-    // Abteilung anlegen
-    const btnAddDep = byId('btnAddDep');
-    if (btnAddDep) {
-      btnAddDep.onclick = () => {
-        if (!(Auth.isMinister() || Auth.isAdmin())) return alert('Nur Finanzminister/Admin');
-        const name = byId('depName').value.trim();
-        const code = byId('depCode').value.trim().toUpperCase();
-        if (!name || !code) return alert('Name/Kürzel');
-        const s = State.get();
-        if (s.departments.some(d => d.code === code)) return alert('Kürzel vergeben');
-        s.departments.push({ id: crypto.randomUUID(), name, code, budget: 0 });
-        State.log(s.session.user.username, 'dep_create', code + ' ' + name);
-        State.save(); UI.renderAll();
-        byId('depName').value = '';
-        byId('depCode').value = '';
-      };
-    }
-
-    // Antrag erstellen
-    const btnReq = byId('btnSubmitReq');
-    if (btnReq) {
-      btnReq.onclick = () => {
-        const title  = byId('reqTitle').value.trim();
-        const deptId = byId('reqDept').value;
-        const amount = parseFloat((byId('reqAmount').value || '').replace(',', '.'));
-        const desc   = byId('reqDesc').value.trim();
-        if (!title || !deptId || !(amount > 0)) return alert('Felder');
-        const s = State.get();
-        s.requests.unshift({
-          id: crypto.randomUUID(), ts: now(), title, deptId, amount, desc,
-          status: 'pending', createdBy: s.session.user.username
-        });
-        State.log(s.session.user.username, 'req_create', title + ' ' + amount);
-        State.save(); UI.renderAll();
-        byId('reqTitle').value  = '';
-        byId('reqAmount').value = '';
-        byId('reqDesc').value   = '';
-      };
-    }
-
-    // Nutzer anlegen (FEHLTE)
-    const btnAddUser = byId('btnAddUser');
-    if (btnAddUser) {
-      btnAddUser.onclick = () => {
-        if (!Auth.isAdmin()) return alert('Nur Admin');
-        const username = byId('userName').value.trim();
-        const role     = byId('userRole').value.trim();
-        const pass     = byId('userPass').value;
-        if (!username || !role || !pass) return alert('Alle Felder ausfüllen');
-        const s = State.get();
-        if (s.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-          return alert('Benutzer existiert bereits');
-        }
-        s.users.push({ username, role, password: pass, active: true });
-        State.log(s.session.user.username, 'user_create', `${username} // ${role}`);
-        State.save(); UI.renderAll();
-        byId('userName').value = '';
-        byId('userPass').value = '';
-      };
-    }
-
-    // Passwort ändern (aktueller Nutzer)
-    const btnPwd = byId('btnChangePass');
-    if (btnPwd) {
-      btnPwd.onclick = () => {
-        const np = byId('newPass').value.trim();
-        if (!np) return;
-        const s = State.get();
-        const u = s.users.find(x => x.username === s.session.user.username);
-        u.password = np;
-        State.save();
-        byId('newPass').value = '';
-      };
-    }
-
-    // Reset
-    const btnReset = byId('btnReset');
-    if (btnReset) {
-      btnReset.onclick = () => {
-        if (!confirm('Zurücksetzen?')) return;
-        localStorage.removeItem(LS_KEY);
-        State.load(); State.save(); UI.renderAll();
-      };
-    }
-
-    // Tabs
-    document.querySelectorAll('.tab').forEach(t => {
-      t.onclick = () => {
-        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-        t.classList.add('active');
-        const key = t.dataset.tab;
-        ['dashboard','deps','requests','users','settings'].forEach(k => {
-          const el = byId('tab-'+k);
-          if (el) el.style.display = (k === key) ? 'block' : 'none';
-        });
-      };
-    });
+  function editUserPrompt(username){
+    if (!Auth.isAdmin()) return;
+    const s = State.get();
+    const u = s.users.find(x => x.username === username);
+    if (!u) return;
+    const newRole = prompt('Rolle', u.role);
+    if (newRole) u.role = newRole.trim();
+    const newPass = prompt('Neues Passwort (leer=skip)', '');
+    if (newPass) u.password = newPass;
+    State.save(); UI.renderAll();
+    State.log(s.session.user.username, 'user_edit', username);
   }
 
-  // ---- Exposed inline handlers bleiben unverändert ----
-  function deleteDep(id){ /* ... wie bei dir ... */ }
-  function editDepPrompt(id){ /* ... */ }
-  function allocPrompt(id){ /* ... */ }
-  function approveReq(id){ /* ... */ }
-  function rejectReq(id){ /* ... */ }
-  function deleteReq(id){ /* ... */ }
-  function editUserPrompt(username){ /* ... */ }
-  function toggleUser(username){ /* ... */ }
-  function deleteUser(username){ /* ... */ }
+  function toggleUser(username){
+    if (!Auth.isAdmin()) return;
+    const s = State.get();
+    const u = s.users.find(x => x.username === username);
+    if (!u) return;
+    if (u.username === 'Admin01') return alert('Admin01 kann nicht deaktiviert werden');
+    u.active = !u.active;
+    State.save(); UI.renderAll();
+    State.log(s.session.user.username, 'user_toggle', username + ' -> ' + (u.active ? 'aktiv' : 'deaktiviert'));
+  }
 
-  return { bind, deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq, editUserPrompt, toggleUser, deleteUser };
+  function deleteUser(username){
+    if (!Auth.isAdmin()) return;
+    if (username === 'Admin01') return alert('Admin01 geschützt');
+    const s = State.get();
+    // Optional: verhindern, dass man sich selbst löscht
+    if (s.session.user?.username === username) return alert('Aktiv eingeloggten Nutzer nicht löschen');
+    s.users = s.users.filter(u => u.username !== username);
+    State.save(); UI.renderAll();
+    State.log(s.session.user.username, 'user_delete', username);
+  }
+
+  // … deine anderen Action-Funktionen (deleteDep, allocPrompt, approveReq, …) bleiben wie gehabt …
+
+  return { bind, editUserPrompt, toggleUser, deleteUser,
+           // ggf. hier auch die anderen zurückgeben:
+           deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq };
 })();
 
+// WICHTIG: für Inline-Handler verfügbar machen
+window.Actions = Actions;
 
-// ===== BLOCK: BOOT =====
-(function Boot(){
-  const loader = byId('loader');
-  const wrap   = byId('rootWrap');
-
-  function finish(){
-    if (loader) loader.style.display = 'none';
-    if (wrap)   wrap.style.opacity   = 1;
-  }
-
-  try {
-    State.load();
-
-    // Wenn alles geladen ist, App binden und rendern
-    window.addEventListener('load', () => {
-      try {
-        Actions.bind();
-        if (State.get().session.user) { UI.showApp(); } else { UI.showLogin(); }
-        UI.renderAll();
-      } catch (e) {
-        console.error('Init error:', e);
-      } finally {
-        finish(); // Loader sicher aus
-      }
-    });
-
-    // Failsafe: selbst wenn 'load' nicht feuert
-    setTimeout(finish, 2500);
-  } catch (e) {
-    console.error('Boot error:', e);
-    finish();
-  }
-})();
 
 
   </script>

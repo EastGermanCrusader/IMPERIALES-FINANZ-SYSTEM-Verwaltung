@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>IMPERIALES FINANZ SYSTEM</title>
   <link rel="icon" href="log_imp.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 
   <!-- ========================= BLOCK: STYLES (CRT + UI) ========================= -->
   <style>
     :root{ --bg:#000; --panel:#0d0d0d; --ink:#e6e6e6; --muted:#9a9a9a; --line:#2a2a2a; --ring:#3a3a3a; }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; position:relative}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 'Orbitron', system-ui, sans-serif; position:relative}
 
     /* CRT Scanlines */
     body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom, rgba(255,255,255,.035), rgba(255,255,255,.035) 1px, transparent 1px, transparent 3px);mix-blend-mode:overlay}
@@ -117,9 +118,8 @@
           <div class="row" style="align-items:center">
             <div class="h1" id="roleBadge">Rolle</div><span id="userBadge"></span>
             <div class="sp"></div>
-            <button class="btn ghost" id="btnExport">Export JSON</button>
-            <label class="btn ghost" for="importFile">Import JSON</label>
-            <input id="importFile" type="file" accept="application/json" style="display:none" />
+            
+            
           </div>
           <div class="stats" style="margin-top:12px">
             <div class="stat"><h3>Gesamtbudget</h3><div class="v" id="statTotal"></div></div>
@@ -174,7 +174,7 @@
             <input class="input" id="depName" placeholder="" />
           </div>
           <div class="col" style="max-width:200px">
-            <label class="label">Code</label>
+            <label class="label">Kürzel</label>
             <input class="input" id="depCode" placeholder="IMN" />
           </div>
           <div class="col" style="max-width:220px">
@@ -183,7 +183,7 @@
         </div>
         <div style="margin-top:14px">
           <table id="depTable">
-            <thead><tr><th>Code</th><th>Abteilung</th><th>Budget</th><th>Aktionen</th></tr></thead>
+            <thead><tr><th>Kürzel</th><th>Abteilung</th><th>Budget</th><th>Aktionen</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -325,82 +325,320 @@
   })();
 
   // ===== BLOCK: UI RENDER =====
-  const UI = (()=>{
-    const showLogin = ()=>{ byId('app').style.display='none'; byId('viewLogin').style.display='block'; byId('btnLogout').style.display='none'; };
-    const showApp = ()=>{ byId('viewLogin').style.display='none'; byId('app').style.display='block'; byId('btnLogout').style.display='inline-block'; };
+const UI = (() => {
+  const showLogin = () => {
+    byId('app').style.display = 'none';
+    byId('viewLogin').style.display = 'block';
+    byId('btnLogout').style.display = 'none';
+  };
+  const showApp = () => {
+    byId('viewLogin').style.display = 'none';
+    byId('app').style.display = 'block';
+    byId('btnLogout').style.display = 'inline-block';
+  };
 
-    function header(){
-      const s = State.get(); if(!s.session.user) return;
-      byId('roleBadge').textContent = s.session.user.role;
-      byId('userBadge').textContent = ' '+s.session.user.username;
-      byId('statTotal').innerHTML = curHTML(s.treasury.fund);
-      byId('statAllocated').innerHTML = curHTML(Compute.totalAllocated());
-      byId('statAvailable').innerHTML = curHTML(Compute.available());
-      byId('statPending').textContent = String(Compute.pendingCount());
+  function header() {
+    const s = State.get();
+    if (!s.session.user) return;
+    byId('roleBadge').textContent = s.session.user.role;
+    byId('userBadge').textContent = ' ' + s.session.user.username;
+    byId('statTotal').innerHTML = curHTML(s.treasury.fund);
+    byId('statAllocated').innerHTML = curHTML(Compute.totalAllocated());
+    byId('statAvailable').innerHTML = curHTML(Compute.available());
+    byId('statPending').textContent = String(Compute.pendingCount());
+  }
+
+  function audit() {
+    const tbody = byId('auditTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    State.get().audit.slice(0, 10).forEach(e => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${new Date(e.ts).toLocaleString('de-DE')}</td><td>${e.actor} – ${e.action}</td><td>${e.details || ''}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function topup() {
+    const isA = Auth.isAdmin();
+    byId('topupAdmin').style.display = isA ? 'grid' : 'none';
+    byId('topupInfo').style.display = isA ? 'none' : 'grid';
+    if (!isA) {
+      const last = State.get().treasury.notes[0];
+      byId('lastIncome').innerHTML = last ? `Letzte Einnahme: ${curHTML(last.amount)} – ${last.note || ''}` : '';
     }
-    function audit(){
-      const tbody = byId('auditTable').querySelector('tbody'); tbody.innerHTML='';
-      State.get().audit.slice(0,10).forEach(e=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${new Date(e.ts).toLocaleString('de-DE')}</td><td>${e.actor} – ${e.action}</td><td>${e.details||''}</td>`; tbody.appendChild(tr); });
-    }
-    function topup(){
-      const isA = Auth.isAdmin();
-      byId('topupAdmin').style.display = isA? 'grid':'none';
-      byId('topupInfo').style.display = isA? 'none':'grid';
-      if(!isA){ const last = State.get().treasury.notes[0]; byId('lastIncome').innerHTML = last? `Letzte Einnahme: ${curHTML(last.amount)} – ${last.note||''}` : ''; }
-    }
-    function deps(){
-      const s = State.get(); const body = byId('depTable').querySelector('tbody'); body.innerHTML='';
-      s.departments.forEach(dep=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><b>${dep.code}</b></td><td>${dep.name}</td><td>${curHTML(dep.budget)}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.allocPrompt('${dep.id}')">Zuweisen</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.editDepPrompt('${dep.id}')">Bearbeiten</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteDep('${dep.id}')">Löschen</button></div></td>`; body.appendChild(tr); });
-      const sel = byId('reqDept'); sel.innerHTML=''; s.departments.forEach(d=>{ const o=document.createElement('option'); o.value=d.id; o.textContent=`${d.name} (${d.code})`; sel.appendChild(o); });
-    }
-    function requests(){
-      const s = State.get(); const body = byId('reqTable').querySelector('tbody'); body.innerHTML='';
-      s.requests.forEach(r=>{ const dep=s.departments.find(d=>d.id===r.deptId); const tr=document.createElement('tr'); tr.innerHTML=`<td>${new Date(r.ts).toLocaleString('de-DE')}</td><td>${r.title}</td><td>${dep?dep.name:''}</td><td>${curHTML(r.amount)}</td><td>${r.status}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.approveReq('${r.id}')">OK</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.rejectReq('${r.id}')">X</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteReq('${r.id}')">DEL</button></div></td>`; body.appendChild(tr); });
-    }
-    function users(){
-      const body = byId('userTable')?.querySelector('tbody'); if(!body) return; body.innerHTML='';
-      State.get().users.forEach(u=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${u.username}</td><td>${u.role}</td><td>${u.active?'<span>aktiv</span>':'<span>deaktiviert</span>'}</td><td><div class="row" style="gap:6px"><button class="btn ghost" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.editUserPrompt('${u.username}')">Edit</button><button class="btn soft" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.toggleUser('${u.username}')">${u.active?'Off':'On'}</button><button class="btn bad" ${!Auth.isAdmin()||u.username==='Admin01'?'disabled':''} onclick="Actions.deleteUser('${u.username}')">DEL</button></div></td>`; body.appendChild(tr); });
-      document.querySelector('[data-tab="users"]').style.display = Auth.isAdmin()? 'inline-block':'none';
-    }
-    function renderAll(){ if(!State.get().session.user){ showLogin(); return; } showApp(); header(); topup(); audit(); deps(); requests(); users(); }
-    return { showLogin, showApp, renderAll };
-  })();
+  }
+
+  function deps() {
+    const s = State.get();
+    const body = byId('depTable').querySelector('tbody');
+    body.innerHTML = '';
+    s.departments.forEach(dep => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td><b>${dep.code}</b></td><td>${dep.name}</td><td>${curHTML(dep.budget)}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.allocPrompt('${dep.id}')">Zuweisen</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.editDepPrompt('${dep.id}')">Bearbeiten</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteDep('${dep.id}')">Löschen</button></div></td>`;
+      body.appendChild(tr);
+    });
+    const sel = byId('reqDept');
+    sel.innerHTML = '';
+    s.departments.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d.id;
+      o.textContent = `${d.name} (${d.code})`;
+      sel.appendChild(o);
+    });
+  }
+
+  function requests() {
+    const s = State.get();
+    const body = byId('reqTable').querySelector('tbody');
+    body.innerHTML = '';
+    s.requests.forEach(r => {
+      const dep = s.departments.find(d => d.id === r.deptId);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${new Date(r.ts).toLocaleString('de-DE')}</td><td>${r.title}</td><td>${dep ? dep.name : ''}</td><td>${curHTML(r.amount)}</td><td>${r.status}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.approveReq('${r.id}')">OK</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.rejectReq('${r.id}')">X</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteReq('${r.id}')">DEL</button></div></td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  function users() {
+    const body = byId('userTable')?.querySelector('tbody');
+    if (!body) return;
+    body.innerHTML = '';
+    State.get().users.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td>${u.active?'<span>aktiv</span>':'<span>deaktiviert</span>'}</td><td><div class="row" style="gap:6px"><button class="btn ghost" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.editUserPrompt('${u.username}')">Edit</button><button class="btn soft" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.toggleUser('${u.username}')">${u.active?'Off':'On'}</button><button class="btn bad" ${!Auth.isAdmin()||u.username==='Admin01'?'disabled':''} onclick="Actions.deleteUser('${u.username}')">DEL</button></div></td>`;
+      body.appendChild(tr);
+    });
+    document.querySelector('[data-tab="users"]').style.display = Auth.isAdmin() ? 'inline-block' : 'none';
+  }
+
+  function renderAll() {
+    if (!State.get().session.user) { showLogin(); return; }
+    showApp(); header(); topup(); audit(); deps(); requests(); users();
+  }
+
+  return { showLogin, showApp, renderAll };
+})();
+
+    
 
   // ===== BLOCK: ACTIONS =====
-  const Actions = (()=>{
-    function bind(){
-      byId('btnLogin').onclick = ()=>{ if(!Auth.login(byId('loginUser').value.trim(), byId('loginPass').value.trim())) alert('Abgewiesen'); };
-      byId('btnLogout').onclick = Auth.logout;
-      byId('btnTopup') && (byId('btnTopup').onclick = ()=>{ if(!Auth.isAdmin()) return alert('Nur Admin'); const amt=parseFloat(byId('topupAmount').value||'0'); if(!(amt>0)) return alert('Betrag'); const note=byId('topupNote').value.trim(); const s=State.get(); s.treasury.fund+=amt; s.treasury.notes.unshift({ts:now(), amount:amt, note}); State.log(s.session.user.username,'fund_topup', amt+' // '+note); State.save(); UI.renderAll(); byId('topupAmount').value=''; byId('topupNote').value=''; });
-      byId('btnAddDep').onclick = ()=>{ if(!(Auth.isMinister()||Auth.isAdmin())) return alert('Nur Finanzminster/Admin'); const name=byId('depName').value.trim(); const code=byId('depCode').value.trim().toUpperCase(); if(!name||!code) return alert('Name/Code'); const s=State.get(); if(s.departments.some(d=>d.code===code)) return alert('Code vergeben'); s.departments.push({id:crypto.randomUUID(), name, code, budget:0}); State.log(s.session.user.username,'dep_create', code+' '+name); State.save(); UI.renderAll(); byId('depName').value=''; byId('depCode').value=''; };
-      byId('btnSubmitReq').onclick = ()=>{ const title=byId('reqTitle').value.trim(); const deptId=byId('reqDept').value; const amount=parseFloat((byId('reqAmount').value||'').replace(',','.')); const desc=byId('reqDesc').value.trim(); if(!title||!deptId||!(amount>0)) return alert('Felder'); const s=State.get(); s.requests.unshift({id:crypto.randomUUID(), ts:now(), title, deptId, amount, desc, status:'pending', createdBy: s.session.user.username}); State.log(s.session.user.username,'req_create', title+' '+amount); State.save(); UI.renderAll(); byId('reqTitle').value=''; byId('reqAmount').value=''; byId('reqDesc').value=''; };
-      byId('btnExport').onclick = ()=>{ const data=JSON.stringify(State.get(),null,2); const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data); a.download='imperiales_finanz_system_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); };
-      byId('importFile').addEventListener('change', ev=>{ const file=ev.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ try{ const obj=JSON.parse(reader.result); State.set(obj); State.save(); UI.renderAll(); alert('OK'); }catch(e){ alert('Fehler: '+e.message); } }; reader.readAsText(file); });
-      byId('btnChangePass').onclick=()=>{ const np=byId('newPass').value.trim(); if(!np) return; const s=State.get(); const u=s.users.find(x=>x.username===s.session.user.username); u.password=np; State.save(); byId('newPass').value=''; };
-      byId('btnReset').onclick=()=>{ if(!confirm('Zurücksetzen?')) return; localStorage.removeItem(LS_KEY); State.load(); State.save(); UI.renderAll(); };
-      Array.from(document.querySelectorAll('.tab')).forEach(t=>t.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const key=t.dataset.tab; ['dashboard','deps','requests','users','settings'].forEach(k=>{ const el=byId('tab-'+k); if(el) el.style.display=(k===key)?'block':'none'; }); });
+const Actions = (() => {
+  function bind() {
+    // Login / Logout
+    byId('btnLogin').onclick  = () => {
+      if (!Auth.login(byId('loginUser').value.trim(), byId('loginPass').value.trim())) {
+        alert('Abgewiesen');
+      }
+    };
+    byId('btnLogout').onclick = Auth.logout;
+
+    // Admin: Fond aufladen
+    const btnTop = byId('btnTopup');
+    if (btnTop) {
+      btnTop.onclick = () => {
+        if (!Auth.isAdmin()) return alert('Nur Admin');
+        const amt  = parseFloat(byId('topupAmount').value || '0');
+        if (!(amt > 0)) return alert('Betrag');
+        const note = byId('topupNote').value.trim();
+        const s = State.get();
+        s.treasury.fund += amt;
+        s.treasury.notes.unshift({ ts: now(), amount: amt, note });
+        State.log(s.session.user.username, 'fund_topup', amt + ' // ' + note);
+        State.save();
+        UI.renderAll();
+        byId('topupAmount').value = '';
+        byId('topupNote').value   = '';
+      };
     }
 
-    // Exposed inline handlers (kept minimal)
-    function deleteDep(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const dep=s.departments.find(d=>d.id===id); if(dep?.budget>0) return alert('Budget zuerst auf 0'); s.departments=s.departments.filter(d=>d.id!==id); State.log(s.session.user.username,'dep_delete',dep?dep.code:''); State.save(); UI.renderAll(); }
-    function editDepPrompt(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const dep=s.departments.find(d=>d.id===id); const name=prompt('Neuer Name',dep.name); if(name){ dep.name=name.trim(); State.save(); UI.renderAll(); State.log(s.session.user.username,'dep_rename',dep.code+'->'+name); } }
-    function allocPrompt(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const dep=s.departments.find(d=>d.id===id); const amtStr=prompt('Betrag (Credits), verfügbar: '+numDE(Compute.available()), '10000'); if(!amtStr) return; const amt=parseFloat(amtStr.replace(',','.')); if(!(amt>0)) return; if(amt>Compute.available()) return alert('Zu wenig Fond'); dep.budget+=amt; State.log(s.session.user.username,'alloc',dep.code+' +'+amt); State.save(); UI.renderAll(); }
-    function approveReq(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const r=s.requests.find(x=>x.id===id); if(!r||r.status!=='pending') return; if(r.amount>Compute.available()) return alert('Zu wenig Fond'); const dep=s.departments.find(d=>d.id===r.deptId); dep.budget+=r.amount; r.status='approved'; r.decidedBy=s.session.user.username; r.decidedAt=now(); State.log(s.session.user.username,'req_approve',r.title+' '+r.amount); State.save(); UI.renderAll(); }
-    function rejectReq(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const r=s.requests.find(x=>x.id===id); if(!r||r.status!=='pending') return; r.status='rejected'; r.decidedBy=s.session.user.username; r.decidedAt=now(); State.log(s.session.user.username,'req_reject',r.title); State.save(); UI.renderAll(); }
-    function deleteReq(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); s.requests=s.requests.filter(x=>x.id!==id); State.log(s.session.user.username,'req_delete',id); State.save(); UI.renderAll(); }
-    function editUserPrompt(username){ if(!Auth.isAdmin()) return; const s=State.get(); const u=s.users.find(x=>x.username===username); const newRole=prompt('Rolle',u.role); if(newRole){ u.role=newRole; } const newPass=prompt('Neues Passwort (leer=skip)',''); if(newPass){ u.password=newPass; } State.save(); UI.renderAll(); State.log(s.session.user.username,'user_edit',username); }
-    function toggleUser(username){ if(!Auth.isAdmin()) return; const s=State.get(); const u=s.users.find(x=>x.username===username); if(!u) return; u.active=!u.active; State.save(); UI.renderAll(); State.log(s.session.user.username,'user_toggle',username+' -> '+(u.active?'aktiv':'deaktiviert')); }
-    function deleteUser(username){ if(!Auth.isAdmin()) return; if(username==='Admin01') return alert('Admin01 geschützt'); const s=State.get(); s.users=s.users.filter(u=>u.username!==username); State.save(); UI.renderAll(); State.log(s.session.user.username,'user_delete',username); }
+    // Abteilung anlegen (Admin + Finanzminister)
+    const btnAddDep = byId('btnAddDep');
+    if (btnAddDep) {
+      btnAddDep.onclick = () => {
+        if (!(Auth.isMinister() || Auth.isAdmin())) return alert('Nur Finanzminister/Admin');
+        const name = byId('depName').value.trim();
+        const code = byId('depCode').value.trim().toUpperCase();
+        if (!name || !code) return alert('Name/Kürzel');
+        const s = State.get();
+        if (s.departments.some(d => d.code === code)) return alert('Kürzel vergeben');
+        s.departments.push({ id: crypto.randomUUID(), name, code, budget: 0 });
+        State.log(s.session.user.username, 'dep_create', code + ' ' + name);
+        State.save();
+        UI.renderAll();
+        byId('depName').value = '';
+        byId('depCode').value = '';
+      };
+    }
 
-    return { bind, deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq, editUserPrompt, toggleUser, deleteUser };
-  })();
+    // Antrag erstellen
+    const btnReq = byId('btnSubmitReq');
+    if (btnReq) {
+      btnReq.onclick = () => {
+        const title  = byId('reqTitle').value.trim();
+        const deptId = byId('reqDept').value;
+        const amount = parseFloat((byId('reqAmount').value || '').replace(',', '.'));
+        const desc   = byId('reqDesc').value.trim();
+        if (!title || !deptId || !(amount > 0)) return alert('Felder');
+        const s = State.get();
+        s.requests.unshift({
+          id: crypto.randomUUID(), ts: now(), title, deptId, amount, desc,
+          status: 'pending', createdBy: s.session.user.username
+        });
+        State.log(s.session.user.username, 'req_create', title + ' ' + amount);
+        State.save();
+        UI.renderAll();
+        byId('reqTitle').value  = '';
+        byId('reqAmount').value = '';
+        byId('reqDesc').value   = '';
+      };
+    }
 
-  // ===== BLOCK: BOOT =====
-  (function Boot(){
-    const loader = byId('loader'); const wrap = byId('rootWrap');
-    State.load();
-    setTimeout(()=>{ loader.style.display='none'; wrap.style.opacity=1; Actions.bind(); if(State.get().session.user){ UI.showApp(); } else { UI.showLogin(); } UI.renderAll(); }, 900);
-  })();
+    // Passwort ändern (aktueller Nutzer)
+    const btnPwd = byId('btnChangePass');
+    if (btnPwd) {
+      btnPwd.onclick = () => {
+        const np = byId('newPass').value.trim();
+        if (!np) return;
+        const s = State.get();
+        const u = s.users.find(x => x.username === s.session.user.username);
+        u.password = np;
+        State.save();
+        byId('newPass').value = '';
+      };
+    }
+
+    // Reset (alles löschen)
+    const btnReset = byId('btnReset');
+    if (btnReset) {
+      btnReset.onclick = () => {
+        if (!confirm('Zurücksetzen?')) return;
+        localStorage.removeItem(LS_KEY);
+        State.load();
+        State.save();
+        UI.renderAll();
+      };
+    }
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(t => {
+      t.onclick = () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        const key = t.dataset.tab;
+        ['dashboard', 'deps', 'requests', 'users', 'settings'].forEach(k => {
+          const el = byId('tab-' + k);
+          if (el) el.style.display = (k === key) ? 'block' : 'none';
+        });
+      };
+    });
+  }
+
+  // ---- Exposed inline handlers (für Buttons in Tabellen) ----
+  function deleteDep(id) {
+    if (!(Auth.isMinister() || Auth.isAdmin())) return;
+    const s = State.get();
+    const dep = s.departments.find(d => d.id === id);
+    if (dep?.budget > 0) return alert('Budget zuerst auf 0');
+    s.departments = s.departments.filter(d => d.id !== id);
+    State.log(s.session.user.username, 'dep_delete', dep ? dep.code : '');
+    State.save(); UI.renderAll();
+  }
+
+  function editDepPrompt(id) {
+    if (!(Auth.isMinister() || Auth.isAdmin())) return;
+    const s = State.get();
+    const dep = s.departments.find(d => d.id === id);
+    const name = prompt('Neuer Name', dep.name);
+    if (name) {
+      dep.name = name.trim();
+      State.save(); UI.renderAll();
+      State.log(s.session.user.username, 'dep_rename', dep.code + '->' + name);
+    }
+  }
+
+  function allocPrompt(id) {
+    if (!(Auth.isMinister() || Auth.isAdmin())) return;
+    const s = State.get();
+    const dep = s.departments.find(d => d.id === id);
+    const amtStr = prompt('Betrag (Credits), verfügbar: ' + numDE(Compute.available()), '10000');
+    if (!amtStr) return;
+    const amt = parseFloat(amtStr.replace(',', '.'));
+    if (!(amt > 0)) return;
+    if (amt > Compute.available()) return alert('Zu wenig Fond');
+    dep.budget += amt;
+    State.log(s.session.user.username, 'alloc', dep.code + ' +' + amt);
+    State.save(); UI.renderAll();
+  }
+
+  function approveReq(id) {
+    if (!(Auth.isMinister() || Auth.isAdmin())) return;
+    const s = State.get();
+    const r = s.requests.find(x => x.id === id);
+    if (!r || r.status !== 'pending') return;
+    if (r.amount > Compute.available()) return alert('Zu wenig Fond');
+    const dep = s.departments.find(d => d.id === r.deptId);
+    dep.budget += r.amount;
+    r.status = 'approved';
+    r.decidedBy = s.session.user.username;
+    r.decidedAt = now();
+    State.log(s.session.user.username, 'req_approve', r.title + ' ' + r.amount);
+    State.save(); UI.renderAll();
+  }
+
+  function rejectReq(id) {
+    if (!(Auth.isMinister() || Auth.isAdmin())) return;
+    const s = State.get();
+    const r = s.requests.find(x => x.id === id);
+    if (!r || r.status !== 'pending') return;
+    r.status = 'rejected';
+    r.decidedBy = s.session.user.username;
+    r.decidedAt = now();
+    State.log(s.session.user.username, 'req_reject', r.title);
+    State.save(); UI.renderAll();
+  }
+
+  function deleteReq(id) {
+    if (!(Auth.isMinister() || Auth.isAdmin())) return;
+    const s = State.get();
+    s.requests = s.requests.filter(x => x.id !== id);
+    State.log(s.session.user.username, 'req_delete', id);
+    State.save(); UI.renderAll();
+  }
+
+  function editUserPrompt(username) {
+    if (!Auth.isAdmin()) return;
+    const s = State.get();
+    const u = s.users.find(x => x.username === username);
+    const newRole = prompt('Rolle', u.role);
+    if (newRole) u.role = newRole;
+    const newPass = prompt('Neues Passwort (leer=skip)', '');
+    if (newPass) u.password = newPass;
+    State.save(); UI.renderAll();
+    State.log(s.session.user.username, 'user_edit', username);
+  }
+
+  function toggleUser(username) {
+    if (!Auth.isAdmin()) return;
+    const s = State.get();
+    const u = s.users.find(x => x.username === username);
+    if (!u) return;
+    u.active = !u.active;
+    State.save(); UI.renderAll();
+    State.log(s.session.user.username, 'user_toggle', username + ' -> ' + (u.active ? 'aktiv' : 'deaktiviert'));
+  }
+
+  function deleteUser(username) {
+    if (!Auth.isAdmin()) return;
+    if (username === 'Admin01') return alert('Admin01 geschützt');
+    const s = State.get();
+    s.users = s.users.filter(u => u.username !== username);
+    State.save(); UI.renderAll();
+    State.log(s.session.user.username, 'user_delete', username);
+  }
+
+  return { bind, deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq, editUserPrompt, toggleUser, deleteUser };
+})();
+
   </script>
 </body>
 </html>

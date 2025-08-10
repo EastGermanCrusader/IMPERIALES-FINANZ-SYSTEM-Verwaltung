@@ -8,55 +8,68 @@
 
   <!-- ========================= BLOCK: STYLES (CRT + UI) ========================= -->
   <style>
-    /* === BLOCK: STYLES === */
-  :root {
-    --crt-bg: #000;
-    --crt-color: #fff;
-    --crt-font: 'Courier New', monospace;
-  }
+    :root{ --bg:#000; --panel:#0d0d0d; --ink:#e6e6e6; --muted:#9a9a9a; --line:#2a2a2a; --ring:#3a3a3a; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; position:relative}
 
-  body {
-    background-color: var(--crt-bg);
-    color: var(--crt-color);
-    font-family: var(--crt-font);
-    text-shadow: 0 0 1px #fff, 0 0 2px #fff;
-  }
+    /* CRT Scanlines */
+    body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom, rgba(255,255,255,.035), rgba(255,255,255,.035) 1px, transparent 1px, transparent 3px);mix-blend-mode:overlay}
+    /* CRT Static + Sweep */
+    .fx-layer{position:fixed;inset:0;pointer-events:none;z-index:9990}
+    .fx-noise{background:repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 2px), repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px); animation:noiseFlash 600ms steps(2,end) infinite}
+    @keyframes noiseFlash{50%{opacity:.8}0%,100%{opacity:.95}}
+    .fx-sweep{background:linear-gradient(to bottom, transparent 0%, rgba(255,255,255,.08) 50%, transparent 100%); height:15%; width:100%; position:fixed; left:0; top:-20%; mix-blend-mode:screen; z-index:9991; animation:sweep 6s linear infinite}
+    @keyframes sweep{0%{transform:translateY(-30vh)} 100%{transform:translateY(130vh)}}
+    @keyframes flicker{0%,100%{opacity:.98} 50%{opacity:.94}}
+    .crt{animation:flicker 3s infinite}
 
-  .crt-effect {
-    animation: flicker 1.5s infinite alternate;
-  }
+    /* UI Shell */
+    .wrap{max-width:1100px;margin:0 auto;padding:20px}
+    .brand{display:flex;align-items:center;gap:.6rem}
+    .logo{width:20px;height:20px;filter:brightness(0) invert(1) contrast(1.05);opacity:.95}
+    .h1{font-size:20px;font-weight:800;letter-spacing:.06em;text-shadow:0 0 6px rgba(255,255,255,.25)}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 6px 20px rgba(0,0,0,.5)}
+    .pad{padding:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .col{flex:1 1 260px}
+    .btn{appearance:none;border:1px solid var(--ink);padding:8px 12px;border-radius:8px;background:transparent;color:var(--ink);font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
+    .btn:hover{background:#111}
+    .btn.bad{border-color:#fff;background:#111}
+    .btn.soft{border-color:#777;color:#ddd}
+    .btn.ghost{border-color:#555;color:#ccc}
+    .input,select,textarea{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--ring);background:#0a0a0a;color:var(--ink);outline:none}
+    .input:focus, select:focus, textarea:focus{box-shadow:0 0 0 2px rgba(255,255,255,.08)}
+    .label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}
+    .grid{display:grid;gap:12px}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    @media(max-width:900px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .stat{padding:14px 16px;border-radius:10px;background:#0a0a0a;border:1px solid var(--line)}
+    .stat h3{margin:0 0 4px 0;font:700 12px/1.2 ui-monospace;letter-spacing:.08em;color:#cfcfcf}
+    .stat .v{font-size:20px;font-weight:800;display:flex;align-items:center;gap:6px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
+    th{font-size:12px;color:#c8c8c8;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+    .tab{padding:6px 10px;border-radius:8px;border:1px solid var(--line);cursor:pointer}
+    .tab.active{background:#101010;border-color:#777}
+    .topbar{display:flex;align-items:center;gap:12px;padding:10px 0}
+    .sp{flex:1}
 
-  @keyframes flicker {
-    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-      opacity: 1;
-    }
-    20%, 24%, 55% {
-      opacity: 0.9;
-    }
-  }
+    /* Currency + icons forced white */
+    .currency-icon{width:16px;height:16px;vertical-align:-3px;filter:brightness(0) invert(1) contrast(1.05);opacity:.95}
+    .cur{display:inline-flex;align-items:center;gap:6px}
 
-  /* Wandernder Streifen */
-  .scanline {
-    position: fixed;
-    top: -50%;
-    left: 0;
-    width: 100%;
-    height: 50%;
-    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.05), transparent);
-    animation: scan 6s linear infinite;
-    pointer-events: none;
-  }
-
-  @keyframes scan {
-    0% { top: -50%; }
-    100% { top: 100%; }
-  }
-
-  /* Icons zwingend weiß */
-  img.icon, .credit-symbol {
-    filter: brightness(0) invert(1);
-  }
-
+    /* Loader */
+    .loader{position:fixed;inset:0;background:#000;display:grid;place-items:center;z-index:10000}
+    .loader-inner{display:grid;gap:14px;place-items:center;color:#e8e8ea}
+    .seal-img{width:92px;height:92px;filter:brightness(0) invert(1) contrast(1.05);opacity:.98}
+    .progress{display:flex;gap:6px}
+    .dot{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.25}
+    .dot:nth-child(1){animation:d 1.2s infinite}
+    .dot:nth-child(2){animation:d 1.2s .2s infinite}
+    .dot:nth-child(3){animation:d 1.2s .4s infinite}
+    @keyframes d{0%,100%{opacity:.25}50%{opacity:1}}
   </style>
 </head>
 <body class="crt">
@@ -80,18 +93,22 @@
       <button class="btn soft" id="btnLogout" style="display:none">Abmelden</button>
     </div>
 
-    <!-- === BLOCK: LOGIN VIEW === -->
-<div id="login-view">
-  <h1>IMPERIALES FINANZ SYSTEM</h1>
-  <form id="login-form">
-    <label>BENUTZERNAME</label>
-    <input type="text" id="username" required>
-    <label>PASSWORT</label>
-    <input type="password" id="password" required>
-    <button type="submit">ANMELDEN</button>
-  </form>
-</div>
-
+    <!-- ========================= BLOCK: LOGIN VIEW ========================= -->
+    <div id="viewLogin" class="card pad" style="max-width:520px;margin:40px auto 0 auto;display:none">
+      <div class="grid">
+        <div>
+          <label class="label">Benutzername</label>
+          <input class="input" id="loginUser" placeholder="Admin01" />
+        </div>
+        <div>
+          <label class="label">Passwort</label>
+          <input class="input" id="loginPass" type="password" placeholder="••••••" />
+        </div>
+        <div class="row" style="align-items:center;gap:8px">
+          <button class="btn" id="btnLogin">Anmelden</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ========================= BLOCK: APP ========================= -->
     <div id="app" style="display:none">
@@ -260,46 +277,44 @@
   <!-- ========================= BLOCK: SCRIPT (MODULED) ========================= -->
   <script>
   // ===== BLOCK: CONSTANTS & HELPERS =====
-  const LS_KEY = 'imperial_finance_blocks_v1';
+  const LS_KEY = 'imperial_finance_blocks_v2';
   const byId = id => document.getElementById(id);
   const now = () => new Date().toISOString();
   const numDE = n => Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
   const curHTML = n => `<span class="cur"><img src="Credits.png" class="currency-icon" alt="Credits"/> ${numDE(n)}</span>`;
 
-  // === BLOCK: STATE & AUTH ===
-const state = {
-  user: null,
-  roles: {
-    admin: { canTopUp: true, canAssign: true },
-    minister: { canTopUp: false, canAssign: true }
-  },
-  budget: 0,
-  assigned: 0,
-  log: []
-};
+  // ===== BLOCK: STATE =====
+  const State = (()=>{
+    const initial = ()=>({
+      users:[{username:'Admin01', role:'Administrator', password:'!#Imperium#!', active:true}],
+      session:{user:null},
+      treasury:{fund:0, notes:[]},
+      departments:[],
+      requests:[],
+      audit:[{ts:now(), actor:'system', action:'init', details:'Fond=0, nur Admin'}]
+    });
+    let s = null;
+    const load = ()=>{ const raw = localStorage.getItem(LS_KEY); s = raw? JSON.parse(raw): initial(); };
+    const save = ()=> localStorage.setItem(LS_KEY, JSON.stringify(s));
+    const log = (actor,action,details)=>{ s.audit.unshift({ts:now(),actor,action,details}); if(s.audit.length>2000) s.audit.pop(); };
+    return { get:()=>s, set:v=>{s=v;}, load, save, log, initial };
+  })();
 
-const users = [
-  { username: "Admin01", password: "!#Imperium#!", role: "admin" },
-  // Finanzminister-Beispiele können hier hinzugefügt werden
-];
-
-function login(username, password) {
-  const user = users.find(u => u.username === username && u.password === password);
-  if (user) {
-    state.user = user;
-    addLog(`${user.username} – login`, "ok");
-    showApp();
-  } else {
-    alert("Ungültige Zugangsdaten");
-  }
-}
-
-function logout() {
-  if (state.user) addLog(`${state.user.username} – logout`, "bye");
-  state.user = null;
-  showLogin();
-}
-
+  // ===== BLOCK: AUTH =====
+  const Auth = (()=>{
+    const isAdmin = ()=> State.get().session.user?.role==='Administrator';
+    const isMinister = ()=> State.get().session.user?.role==='Finanzminister';
+    const login = (u,p)=>{
+      const s = State.get();
+      const f = s.users.find(x=>x.active && x.username===u && x.password===p);
+      if(!f) return false;
+      s.session.user = {username:f.username, role:f.role};
+      State.log(u,'login','ok'); State.save(); UI.renderAll();
+      return true;
+    };
+    const logout = ()=>{ const s=State.get(); if(s.session.user) State.log(s.session.user.username,'logout','bye'); s.session.user=null; State.save(); UI.showLogin(); };
+    return { isAdmin, isMinister, login, logout };
+  })();
 
   // ===== BLOCK: COMPUTE =====
   const Compute = (()=>{
@@ -351,18 +366,20 @@ function logout() {
     return { showLogin, showApp, renderAll };
   })();
 
-  // === BLOCK: UI RENDER: DASHBOARD ===
-function renderDashboard() {
-  document.getElementById("budget").innerText = formatCredits(state.budget);
-  document.getElementById("assigned").innerText = formatCredits(state.assigned);
-  document.getElementById("available").innerText = formatCredits(state.budget - state.assigned);
-  renderLog();
-}
-
-function formatCredits(value) {
-  return `\uE001 ${value.toLocaleString()}`; // Währungssymbol über Icon-Font oder Bild
-}
-
+  // ===== BLOCK: ACTIONS =====
+  const Actions = (()=>{
+    function bind(){
+      byId('btnLogin').onclick = ()=>{ if(!Auth.login(byId('loginUser').value.trim(), byId('loginPass').value.trim())) alert('Abgewiesen'); };
+      byId('btnLogout').onclick = Auth.logout;
+      byId('btnTopup') && (byId('btnTopup').onclick = ()=>{ if(!Auth.isAdmin()) return alert('Nur Admin'); const amt=parseFloat(byId('topupAmount').value||'0'); if(!(amt>0)) return alert('Betrag'); const note=byId('topupNote').value.trim(); const s=State.get(); s.treasury.fund+=amt; s.treasury.notes.unshift({ts:now(), amount:amt, note}); State.log(s.session.user.username,'fund_topup', amt+' // '+note); State.save(); UI.renderAll(); byId('topupAmount').value=''; byId('topupNote').value=''; });
+      byId('btnAddDep').onclick = ()=>{ if(!(Auth.isMinister()||Auth.isAdmin())) return alert('Nur Finanzminster/Admin'); const name=byId('depName').value.trim(); const code=byId('depCode').value.trim().toUpperCase(); if(!name||!code) return alert('Name/Code'); const s=State.get(); if(s.departments.some(d=>d.code===code)) return alert('Code vergeben'); s.departments.push({id:crypto.randomUUID(), name, code, budget:0}); State.log(s.session.user.username,'dep_create', code+' '+name); State.save(); UI.renderAll(); byId('depName').value=''; byId('depCode').value=''; };
+      byId('btnSubmitReq').onclick = ()=>{ const title=byId('reqTitle').value.trim(); const deptId=byId('reqDept').value; const amount=parseFloat((byId('reqAmount').value||'').replace(',','.')); const desc=byId('reqDesc').value.trim(); if(!title||!deptId||!(amount>0)) return alert('Felder'); const s=State.get(); s.requests.unshift({id:crypto.randomUUID(), ts:now(), title, deptId, amount, desc, status:'pending', createdBy: s.session.user.username}); State.log(s.session.user.username,'req_create', title+' '+amount); State.save(); UI.renderAll(); byId('reqTitle').value=''; byId('reqAmount').value=''; byId('reqDesc').value=''; };
+      byId('btnExport').onclick = ()=>{ const data=JSON.stringify(State.get(),null,2); const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data); a.download='imperiales_finanz_system_'+new Date().toISOString().slice(0,10)+'.json'; a.click(); };
+      byId('importFile').addEventListener('change', ev=>{ const file=ev.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ try{ const obj=JSON.parse(reader.result); State.set(obj); State.save(); UI.renderAll(); alert('OK'); }catch(e){ alert('Fehler: '+e.message); } }; reader.readAsText(file); });
+      byId('btnChangePass').onclick=()=>{ const np=byId('newPass').value.trim(); if(!np) return; const s=State.get(); const u=s.users.find(x=>x.username===s.session.user.username); u.password=np; State.save(); byId('newPass').value=''; };
+      byId('btnReset').onclick=()=>{ if(!confirm('Zurücksetzen?')) return; localStorage.removeItem(LS_KEY); State.load(); State.save(); UI.renderAll(); };
+      Array.from(document.querySelectorAll('.tab')).forEach(t=>t.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const key=t.dataset.tab; ['dashboard','deps','requests','users','settings'].forEach(k=>{ const el=byId('tab-'+k); if(el) el.style.display=(k===key)?'block':'none'; }); });
+    }
 
     // Exposed inline handlers (kept minimal)
     function deleteDep(id){ if(!(Auth.isMinister()||Auth.isAdmin())) return; const s=State.get(); const dep=s.departments.find(d=>d.id===id); if(dep?.budget>0) return alert('Budget zuerst auf 0'); s.departments=s.departments.filter(d=>d.id!==id); State.log(s.session.user.username,'dep_delete',dep?dep.code:''); State.save(); UI.renderAll(); }
@@ -376,11 +393,10 @@ function formatCredits(value) {
     function deleteUser(username){ if(!Auth.isAdmin()) return; if(username==='Admin01') return alert('Admin01 geschützt'); const s=State.get(); s.users=s.users.filter(u=>u.username!==username); State.save(); UI.renderAll(); State.log(s.session.user.username,'user_delete',username); }
 
     return { bind, deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq, editUserPrompt, toggleUser, deleteUser };
-  
+  })();
 
   // ===== BLOCK: BOOT =====
   (function Boot(){
-    // loader fade
     const loader = byId('loader'); const wrap = byId('rootWrap');
     State.load();
     setTimeout(()=>{ loader.style.display='none'; wrap.style.opacity=1; Actions.bind(); if(State.get().session.user){ UI.showApp(); } else { UI.showLogin(); } UI.renderAll(); }, 900);

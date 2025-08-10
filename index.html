@@ -639,6 +639,41 @@ const Actions = (() => {
   return { bind, deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq, editUserPrompt, toggleUser, deleteUser };
 })();
 
+// ===== BLOCK: BOOT =====
+(function Boot(){
+  const loader = byId('loader');
+  const wrap   = byId('rootWrap');
+
+  function finish(){
+    if (loader) loader.style.display = 'none';
+    if (wrap)   wrap.style.opacity   = 1;
+  }
+
+  try {
+    State.load();
+
+    // Wenn alles geladen ist, App binden und rendern
+    window.addEventListener('load', () => {
+      try {
+        Actions.bind();
+        if (State.get().session.user) { UI.showApp(); } else { UI.showLogin(); }
+        UI.renderAll();
+      } catch (e) {
+        console.error('Init error:', e);
+      } finally {
+        finish(); // Loader sicher aus
+      }
+    });
+
+    // Failsafe: selbst wenn 'load' nicht feuert
+    setTimeout(finish, 2500);
+  } catch (e) {
+    console.error('Boot error:', e);
+    finish();
+  }
+})();
+
+
   </script>
 </body>
 </html>

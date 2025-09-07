@@ -71,12 +71,45 @@
     .dot:nth-child(2){animation:d 1.2s .2s infinite}
     .dot:nth-child(3){animation:d 1.2s .4s infinite}
     @keyframes d{0%,100%{opacity:.25}50%{opacity:1}}
+
+    /* Work-in-Progress Banner */
+    .wip-banner{
+      position:relative;
+      background:repeating-linear-gradient(45deg,#000 0 22px,#ffd000 22px 44px);
+      color:#111;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      padding:8px 0;
+      margin:10px 0 20px 0;
+      overflow:hidden;
+      border:1px solid #444;
+      border-radius:8px;
+    }
+    .wip-banner span{
+      display:inline-block;
+      padding-left:100%;
+      white-space:nowrap;
+      text-shadow:0 0 6px rgba(255,255,255,.4);
+      animation:wip-scroll 12s linear infinite;
+    }
+    @keyframes wip-scroll{
+      0%{transform:translateX(0)}
+      100%{transform:translateX(-100%)}
+    }
   </style>
 </head>
 <body class="crt">
   <!-- CRT FX Overlays -->
   <div class="fx-layer fx-noise"></div>
   <div class="fx-sweep"></div>
+
+  <!-- WIP Banner -->
+  <div class="wrap" style="padding-top:12px;padding-bottom:0">
+    <div class="wip-banner">
+      <span>⚠️ Work in Progress – Imperiales Finanzsystem wird noch entwickelt ⚠️ Work in Progress – Imperiales Finanzsystem wird noch entwickelt ⚠️</span>
+    </div>
+  </div>
 
   <!-- ========================= BLOCK: LOADER ========================= -->
   <div id="loader" class="loader">
@@ -118,8 +151,6 @@
           <div class="row" style="align-items:center">
             <div class="h1" id="roleBadge">Rolle</div><span id="userBadge"></span>
             <div class="sp"></div>
-            
-            
           </div>
           <div class="stats" style="margin-top:12px">
             <div class="stat"><h3>Gesamtbudget</h3><div class="v" id="statTotal"></div></div>
@@ -191,7 +222,7 @@
 
       <!-- ========================= BLOCK: TAB REQUESTS ========================= -->
       <div id="tab-requests" class="card pad" style="display:none">
-        <div class="row" style="align_items:end">
+        <div class="row" style="align-items:end">
           <div class="col">
             <label class="label">Titel</label>
             <input class="input" id="reqTitle" placeholder="" />
@@ -325,284 +356,276 @@
   })();
 
   // ===== BLOCK: UI RENDER =====
-const UI = (() => {
-  const showLogin = () => {
-    byId('app').style.display = 'none';
-    byId('viewLogin').style.display = 'block';
-    byId('btnLogout').style.display = 'none';
-  };
-  const showApp = () => {
-    byId('viewLogin').style.display = 'none';
-    byId('app').style.display = 'block';
-    byId('btnLogout').style.display = 'inline-block';
-  };
+  const UI = (() => {
+    const showLogin = () => {
+      byId('app').style.display = 'none';
+      byId('viewLogin').style.display = 'block';
+      byId('btnLogout').style.display = 'none';
+    };
+    const showApp = () => {
+      byId('viewLogin').style.display = 'none';
+      byId('app').style.display = 'block';
+      byId('btnLogout').style.display = 'inline-block';
+    };
 
-  function header() {
-    const s = State.get();
-    if (!s.session.user) return;
-    byId('roleBadge').textContent = s.session.user.role;
-    byId('userBadge').textContent = ' ' + s.session.user.username;
-    byId('statTotal').innerHTML = curHTML(s.treasury.fund);
-    byId('statAllocated').innerHTML = curHTML(Compute.totalAllocated());
-    byId('statAvailable').innerHTML = curHTML(Compute.available());
-    byId('statPending').textContent = String(Compute.pendingCount());
-  }
-
-  function audit() {
-    const tbody = byId('auditTable').querySelector('tbody');
-    tbody.innerHTML = '';
-    State.get().audit.slice(0, 10).forEach(e => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${new Date(e.ts).toLocaleString('de-DE')}</td><td>${e.actor} – ${e.action}</td><td>${e.details || ''}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function topup() {
-    const isA = Auth.isAdmin();
-    byId('topupAdmin').style.display = isA ? 'grid' : 'none';
-    byId('topupInfo').style.display = isA ? 'none' : 'grid';
-    if (!isA) {
-      const last = State.get().treasury.notes[0];
-      byId('lastIncome').innerHTML = last ? `Letzte Einnahme: ${curHTML(last.amount)} – ${last.note || ''}` : '';
+    function header() {
+      const s = State.get();
+      if (!s.session.user) return;
+      byId('roleBadge').textContent = s.session.user.role;
+      byId('userBadge').textContent = ' ' + s.session.user.username;
+      byId('statTotal').innerHTML = curHTML(s.treasury.fund);
+      byId('statAllocated').innerHTML = curHTML(Compute.totalAllocated());
+      byId('statAvailable').innerHTML = curHTML(Compute.available());
+      byId('statPending').textContent = String(Compute.pendingCount());
     }
-  }
 
-  function deps() {
-    const s = State.get();
-    const body = byId('depTable').querySelector('tbody');
-    body.innerHTML = '';
-    s.departments.forEach(dep => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td><b>${dep.code}</b></td><td>${dep.name}</td><td>${curHTML(dep.budget)}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.allocPrompt('${dep.id}')">Zuweisen</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.editDepPrompt('${dep.id}')">Bearbeiten</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteDep('${dep.id}')">Löschen</button></div></td>`;
-      body.appendChild(tr);
-    });
-    const sel = byId('reqDept');
-    sel.innerHTML = '';
-    s.departments.forEach(d => {
-      const o = document.createElement('option');
-      o.value = d.id;
-      o.textContent = `${d.name} (${d.code})`;
-      sel.appendChild(o);
-    });
-  }
+    function audit() {
+      const tbody = byId('auditTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      State.get().audit.slice(0, 10).forEach(e => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${new Date(e.ts).toLocaleString('de-DE')}</td><td>${e.actor} – ${e.action}</td><td>${e.details || ''}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
 
-  function requests() {
-    const s = State.get();
-    const body = byId('reqTable').querySelector('tbody');
-    body.innerHTML = '';
-    s.requests.forEach(r => {
-      const dep = s.departments.find(d => d.id === r.deptId);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${new Date(r.ts).toLocaleString('de-DE')}</td><td>${r.title}</td><td>${dep ? dep.name : ''}</td><td>${curHTML(r.amount)}</td><td>${r.status}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.approveReq('${r.id}')">OK</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.rejectReq('${r.id}')">X</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteReq('${r.id}')">DEL</button></div></td>`;
-      body.appendChild(tr);
-    });
-  }
+    function topup() {
+      const isA = Auth.isAdmin();
+      byId('topupAdmin').style.display = isA ? 'grid' : 'none';
+      byId('topupInfo').style.display = isA ? 'none' : 'grid';
+      if (!isA) {
+        const last = State.get().treasury.notes[0];
+        byId('lastIncome').innerHTML = last ? `Letzte Einnahme: ${curHTML(last.amount)} – ${last.note || ''}` : '';
+      }
+    }
 
-  function users() {
-    const body = byId('userTable')?.querySelector('tbody');
-    if (!body) return;
-    body.innerHTML = '';
-    State.get().users.forEach(u => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td>${u.active?'<span>aktiv</span>':'<span>deaktiviert</span>'}</td><td><div class="row" style="gap:6px"><button class="btn ghost" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.editUserPrompt('${u.username}')">Edit</button><button class="btn soft" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.toggleUser('${u.username}')">${u.active?'Off':'On'}</button><button class="btn bad" ${!Auth.isAdmin()||u.username==='Admin01'?'disabled':''} onclick="Actions.deleteUser('${u.username}')">DEL</button></div></td>`;
-      body.appendChild(tr);
-    });
+    function deps() {
+      const s = State.get();
+      const body = byId('depTable').querySelector('tbody');
+      body.innerHTML = '';
+      s.departments.forEach(dep => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><b>${dep.code}</b></td><td>${dep.name}</td><td>${curHTML(dep.budget)}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.allocPrompt('${dep.id}')">Zuweisen</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.editDepPrompt('${dep.id}')">Bearbeiten</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteDep('${dep.id}')">Löschen</button></div></td>`;
+        body.appendChild(tr);
+      });
+      const sel = byId('reqDept');
+      sel.innerHTML = '';
+      s.departments.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d.id;
+        o.textContent = `${d.name} (${d.code})`;
+        sel.appendChild(o);
+      });
+    }
 
-    // Nur für Administrator sichtbar
-    document.querySelector('[data-tab="users"]').style.display = Auth.isAdmin() ? 'inline-block' : 'none';
-    document.querySelector('[data-tab="settings"]').style.display = Auth.isAdmin() ? 'inline-block' : 'none';
-}
+    function requests() {
+      const s = State.get();
+      const body = byId('reqTable').querySelector('tbody');
+      body.innerHTML = '';
+      s.requests.forEach(r => {
+        const dep = s.departments.find(d => d.id === r.deptId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${new Date(r.ts).toLocaleString('de-DE')}</td><td>${r.title}</td><td>${dep ? dep.name : ''}</td><td>${curHTML(r.amount)}</td><td>${r.status}</td><td><div class="row" style="gap:6px"><button class="btn soft" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.approveReq('${r.id}')">OK</button><button class="btn ghost" ${(Auth.isMinister()||Auth.isAdmin())&&r.status==='pending'?'':'disabled'} onclick="Actions.rejectReq('${r.id}')">X</button><button class="btn bad" ${(Auth.isMinister()||Auth.isAdmin())?'':'disabled'} onclick="Actions.deleteReq('${r.id}')">DEL</button></div></td>`;
+        body.appendChild(tr);
+      });
+    }
 
+    function users() {
+      const body = byId('userTable')?.querySelector('tbody');
+      if (!body) return;
+      body.innerHTML = '';
+      State.get().users.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td>${u.active?'<span>aktiv</span>':'<span>deaktiviert</span>'}</td><td><div class="row" style="gap:6px"><button class="btn ghost" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.editUserPrompt('${u.username}')">Edit</button><button class="btn soft" ${!Auth.isAdmin()?'disabled':''} onclick="Actions.toggleUser('${u.username}')">${u.active?'Off':'On'}</button><button class="btn bad" ${!Auth.isAdmin()||u.username==='Admin01'?'disabled':''} onclick="Actions.deleteUser('${u.username}')">DEL</button></div></td>`;
+        body.appendChild(tr);
+      });
 
-  function renderAll() {
-    if (!State.get().session.user) { showLogin(); return; }
-    showApp(); header(); topup(); audit(); deps(); requests(); users();
-  }
+      // Nur für Administrator sichtbar
+      document.querySelector('[data-tab="users"]').style.display = Auth.isAdmin() ? 'inline-block' : 'none';
+      document.querySelector('[data-tab="settings"]').style.display = Auth.isAdmin() ? 'inline-block' : 'none';
+    }
 
-  return { showLogin, showApp, renderAll };
-})();
+    function renderAll() {
+      if (!State.get().session.user) { showLogin(); return; }
+      showApp(); header(); topup(); audit(); deps(); requests(); users();
+    }
 
-    
+    return { showLogin, showApp, renderAll };
+  })();
 
   // ===== BLOCK: ACTIONS =====
-const Actions = (() => {
-  function bind() {
-    // Login / Logout
-    byId('btnLogin').onclick  = () => {
-      if (!Auth.login(byId('loginUser').value.trim(), byId('loginPass').value.trim())) {
-        alert('Abgewiesen');
-      }
-    };
-    byId('btnLogout').onclick = Auth.logout;
-
-    // Admin: Fond aufladen
-    const btnTop = byId('btnTopup');
-    if (btnTop) {
-      btnTop.onclick = () => {
-        if (!Auth.isAdmin()) return alert('Nur Admin');
-        const amt  = parseFloat(byId('topupAmount').value || '0');
-        if (!(amt > 0)) return alert('Betrag');
-        const note = byId('topupNote').value.trim();
-        const s = State.get();
-        s.treasury.fund += amt;
-        s.treasury.notes.unshift({ ts: now(), amount: amt, note });
-        State.log(s.session.user.username, 'fund_topup', amt + ' // ' + note);
-        State.save(); UI.renderAll();
-        byId('topupAmount').value = '';
-        byId('topupNote').value   = '';
-      };
-    }
-
-    // Abteilung anlegen
-    const btnAddDep = byId('btnAddDep');
-    if (btnAddDep) {
-      btnAddDep.onclick = () => {
-        if (!(Auth.isMinister() || Auth.isAdmin())) return alert('Nur Finanzminister/Admin');
-        const name = byId('depName').value.trim();
-        const code = byId('depCode').value.trim().toUpperCase();
-        if (!name || !code) return alert('Name/Kürzel');
-        const s = State.get();
-        if (s.departments.some(d => d.code === code)) return alert('Kürzel vergeben');
-        s.departments.push({ id: crypto.randomUUID(), name, code, budget: 0 });
-        State.log(s.session.user.username, 'dep_create', code + ' ' + name);
-        State.save(); UI.renderAll();
-        byId('depName').value = '';
-        byId('depCode').value = '';
-      };
-    }
-
-    // Antrag erstellen
-    const btnReq = byId('btnSubmitReq');
-    if (btnReq) {
-      btnReq.onclick = () => {
-        const title  = byId('reqTitle').value.trim();
-        const deptId = byId('reqDept').value;
-        const amount = parseFloat((byId('reqAmount').value || '').replace(',', '.'));
-        const desc   = byId('reqDesc').value.trim();
-        if (!title || !deptId || !(amount > 0)) return alert('Felder');
-        const s = State.get();
-        s.requests.unshift({
-          id: crypto.randomUUID(), ts: now(), title, deptId, amount, desc,
-          status: 'pending', createdBy: s.session.user.username
-        });
-        State.log(s.session.user.username, 'req_create', title + ' ' + amount);
-        State.save(); UI.renderAll();
-        byId('reqTitle').value  = '';
-        byId('reqAmount').value = '';
-        byId('reqDesc').value   = '';
-      };
-    }
-
-    // Nutzer anlegen (FEHLTE)
-    const btnAddUser = byId('btnAddUser');
-    if (btnAddUser) {
-      btnAddUser.onclick = () => {
-        if (!Auth.isAdmin()) return alert('Nur Admin');
-        const username = byId('userName').value.trim();
-        const role     = byId('userRole').value.trim();
-        const pass     = byId('userPass').value;
-        if (!username || !role || !pass) return alert('Alle Felder ausfüllen');
-        const s = State.get();
-        if (s.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-          return alert('Benutzer existiert bereits');
+  const Actions = (() => {
+    function bind() {
+      // Login / Logout
+      byId('btnLogin').onclick  = () => {
+        if (!Auth.login(byId('loginUser').value.trim(), byId('loginPass').value.trim())) {
+          alert('Abgewiesen');
         }
-        s.users.push({ username, role, password: pass, active: true });
-        State.log(s.session.user.username, 'user_create', `${username} // ${role}`);
-        State.save(); UI.renderAll();
-        byId('userName').value = '';
-        byId('userPass').value = '';
       };
-    }
+      byId('btnLogout').onclick = Auth.logout;
 
-    // Passwort ändern (aktueller Nutzer)
-    const btnPwd = byId('btnChangePass');
-    if (btnPwd) {
-      btnPwd.onclick = () => {
-        const np = byId('newPass').value.trim();
-        if (!np) return;
-        const s = State.get();
-        const u = s.users.find(x => x.username === s.session.user.username);
-        u.password = np;
-        State.save();
-        byId('newPass').value = '';
-      };
-    }
-
-    // Reset
-    const btnReset = byId('btnReset');
-    if (btnReset) {
-      btnReset.onclick = () => {
-        if (!confirm('Zurücksetzen?')) return;
-        localStorage.removeItem(LS_KEY);
-        State.load(); State.save(); UI.renderAll();
-      };
-    }
-
-    // Tabs
-    document.querySelectorAll('.tab').forEach(t => {
-      t.onclick = () => {
-        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-        t.classList.add('active');
-        const key = t.dataset.tab;
-        ['dashboard','deps','requests','users','settings'].forEach(k => {
-          const el = byId('tab-'+k);
-          if (el) el.style.display = (k === key) ? 'block' : 'none';
-        });
-      };
-    });
-  }
-
-  // ---- Exposed inline handlers bleiben unverändert ----
-  function deleteDep(id){ /* ... wie bei dir ... */ }
-  function editDepPrompt(id){ /* ... */ }
-  function allocPrompt(id){ /* ... */ }
-  function approveReq(id){ /* ... */ }
-  function rejectReq(id){ /* ... */ }
-  function deleteReq(id){ /* ... */ }
-  function editUserPrompt(username){ /* ... */ }
-  function toggleUser(username){ /* ... */ }
-  function deleteUser(username){ /* ... */ }
-
-  return { bind, deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq, editUserPrompt, toggleUser, deleteUser };
-})();
-
-
-// ===== BLOCK: BOOT =====
-(function Boot(){
-  const loader = byId('loader');
-  const wrap   = byId('rootWrap');
-
-  function finish(){
-    if (loader) loader.style.display = 'none';
-    if (wrap)   wrap.style.opacity   = 1;
-  }
-
-  try {
-    State.load();
-
-    // Wenn alles geladen ist, App binden und rendern
-    window.addEventListener('load', () => {
-      try {
-        Actions.bind();
-        if (State.get().session.user) { UI.showApp(); } else { UI.showLogin(); }
-        UI.renderAll();
-      } catch (e) {
-        console.error('Init error:', e);
-      } finally {
-        finish(); // Loader sicher aus
+      // Admin: Fond aufladen
+      const btnTop = byId('btnTopup');
+      if (btnTop) {
+        btnTop.onclick = () => {
+          if (!Auth.isAdmin()) return alert('Nur Admin');
+          const amt  = parseFloat(byId('topupAmount').value || '0');
+          if (!(amt > 0)) return alert('Betrag');
+          const note = byId('topupNote').value.trim();
+          const s = State.get();
+          s.treasury.fund += amt;
+          s.treasury.notes.unshift({ ts: now(), amount: amt, note });
+          State.log(s.session.user.username, 'fund_topup', amt + ' // ' + note);
+          State.save(); UI.renderAll();
+          byId('topupAmount').value = '';
+          byId('topupNote').value   = '';
+        };
       }
-    });
 
-    // Failsafe: selbst wenn 'load' nicht feuert
-    setTimeout(finish, 2500);
-  } catch (e) {
-    console.error('Boot error:', e);
-    finish();
-  }
-})();
+      // Abteilung anlegen
+      const btnAddDep = byId('btnAddDep');
+      if (btnAddDep) {
+        btnAddDep.onclick = () => {
+          if (!(Auth.isMinister() || Auth.isAdmin())) return alert('Nur Finanzminister/Admin');
+          const name = byId('depName').value.trim();
+          const code = byId('depCode').value.trim().toUpperCase();
+          if (!name || !code) return alert('Name/Kürzel');
+          const s = State.get();
+          if (s.departments.some(d => d.code === code)) return alert('Kürzel vergeben');
+          s.departments.push({ id: crypto.randomUUID(), name, code, budget: 0 });
+          State.log(s.session.user.username, 'dep_create', code + ' ' + name);
+          State.save(); UI.renderAll();
+          byId('depName').value = '';
+          byId('depCode').value = '';
+        };
+      }
 
+      // Antrag erstellen
+      const btnReq = byId('btnSubmitReq');
+      if (btnReq) {
+        btnReq.onclick = () => {
+          const title  = byId('reqTitle').value.trim();
+          const deptId = byId('reqDept').value;
+          const amount = parseFloat((byId('reqAmount').value || '').replace(',', '.'));
+          const desc   = byId('reqDesc').value.trim();
+          if (!title || !deptId || !(amount > 0)) return alert('Felder');
+          const s = State.get();
+          s.requests.unshift({
+            id: crypto.randomUUID(), ts: now(), title, deptId, amount, desc,
+            status: 'pending', createdBy: s.session.user.username
+          });
+          State.log(s.session.user.username, 'req_create', title + ' ' + amount);
+          State.save(); UI.renderAll();
+          byId('reqTitle').value  = '';
+          byId('reqAmount').value = '';
+          byId('reqDesc').value   = '';
+        };
+      }
 
+      // Nutzer anlegen
+      const btnAddUser = byId('btnAddUser');
+      if (btnAddUser) {
+        btnAddUser.onclick = () => {
+          if (!Auth.isAdmin()) return alert('Nur Admin');
+          const username = byId('userName').value.trim();
+          const role     = byId('userRole').value.trim();
+          const pass     = byId('userPass').value;
+          if (!username || !role || !pass) return alert('Alle Felder ausfüllen');
+          const s = State.get();
+          if (s.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+            return alert('Benutzer existiert bereits');
+          }
+          s.users.push({ username, role, password: pass, active: true });
+          State.log(s.session.user.username, 'user_create', `${username} // ${role}`);
+          State.save(); UI.renderAll();
+          byId('userName').value = '';
+          byId('userPass').value = '';
+        };
+      }
+
+      // Passwort ändern (aktueller Nutzer)
+      const btnPwd = byId('btnChangePass');
+      if (btnPwd) {
+        btnPwd.onclick = () => {
+          const np = byId('newPass').value.trim();
+          if (!np) return;
+          const s = State.get();
+          const u = s.users.find(x => x.username === s.session.user.username);
+          u.password = np;
+          State.save();
+          byId('newPass').value = '';
+        };
+      }
+
+      // Reset
+      const btnReset = byId('btnReset');
+      if (btnReset) {
+        btnReset.onclick = () => {
+          if (!confirm('Zurücksetzen?')) return;
+          localStorage.removeItem(LS_KEY);
+          State.load(); State.save(); UI.renderAll();
+        };
+      }
+
+      // Tabs
+      document.querySelectorAll('.tab').forEach(t => {
+        t.onclick = () => {
+          document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+          t.classList.add('active');
+          const key = t.dataset.tab;
+          ['dashboard','deps','requests','users','settings'].forEach(k => {
+            const el = byId('tab-'+k);
+            if (el) el.style.display = (k === key) ? 'block' : 'none';
+          });
+        };
+      });
+    }
+
+    // Platzhalter für Inline-Handler
+    function deleteDep(id){ /* TODO */ }
+    function editDepPrompt(id){ /* TODO */ }
+    function allocPrompt(id){ /* TODO */ }
+    function approveReq(id){ /* TODO */ }
+    function rejectReq(id){ /* TODO */ }
+    function deleteReq(id){ /* TODO */ }
+    function editUserPrompt(username){ /* TODO */ }
+    function toggleUser(username){ /* TODO */ }
+    function deleteUser(username){ /* TODO */ }
+
+    return { bind, deleteDep, editDepPrompt, allocPrompt, approveReq, rejectReq, deleteReq, editUserPrompt, toggleUser, deleteUser };
+  })();
+
+  // ===== BLOCK: BOOT =====
+  (function Boot(){
+    const loader = byId('loader');
+    const wrap   = byId('rootWrap');
+
+    function finish(){
+      if (loader) loader.style.display = 'none';
+      if (wrap)   wrap.style.opacity   = 1;
+    }
+
+    try {
+      State.load();
+
+      window.addEventListener('load', () => {
+        try {
+          Actions.bind();
+          if (State.get().session.user) { UI.showApp(); } else { UI.showLogin(); }
+          UI.renderAll();
+        } catch (e) {
+          console.error('Init error:', e);
+        } finally {
+          finish();
+        }
+      });
+
+      setTimeout(finish, 2500);
+    } catch (e) {
+      console.error('Boot error:', e);
+      finish();
+    }
+  })();
   </script>
 </body>
 </html>
